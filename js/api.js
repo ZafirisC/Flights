@@ -21,3 +21,41 @@ export async function getJSON(url, { timeout = 10000 } = {}) {
     clearTimeout(timer);
   }
 }
+
+// Diagnostic request for tools/api-check.html: never throws, reports what the browser saw.
+// If the normal request fails, a no-cors request tells "host reachable but CORS blocked"
+// apart from "host unreachable".
+export async function probe(url, { timeout = 10000 } = {}) {
+  const started = performance.now();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    const text = await res.text();
+    let body = null;
+    try { body = JSON.parse(text); } catch { /* not JSON */ }
+    return {
+      cors: true,
+      status: res.status,
+      ms: Math.round(performance.now() - started),
+      headers: Object.fromEntries(res.headers.entries()),
+      body,
+      text,
+    };
+  } catch (err) {
+    const ms = Math.round(performance.now() - started);
+    if (err.name === 'AbortError') return { cors: null, error: 'Timeout', ms };
+    let reachable = false;
+    try {
+      await fetch(url, { mode: 'no-cors', signal: AbortSignal.timeout(timeout) });
+      reachable = true;
+    } catch { /* unreachable */ }
+    return {
+      cors: false,
+      error: reachable ? 'Blocked by CORS (host reachable)' : `Network error: ${err.message}`,
+      ms,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
