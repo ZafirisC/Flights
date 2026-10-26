@@ -27,7 +27,7 @@ async function start() {
   });
 
   const shared = flightFromUrl();
-  if (shared) await openSharedFlight(map, layer, shared); // before polling, so the first fetch is at the flight
+  if (shared) await openSharedFlight(layer, shared); // before polling, so the first fetch is at the flight
   startTraffic(map, layer);
-  initSearch(document.getElementById('search'), map);
+  initSearch(document.getElementById('search'), map, layer);
 }

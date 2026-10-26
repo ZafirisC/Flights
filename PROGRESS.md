@@ -11,7 +11,7 @@
 | 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☑ |
 | 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☑ |
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☑ |
-| 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☐ |
+| 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ◐ built, awaiting Worker redeploy + check |
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☐ |
 | 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☐ |
 | 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☐ |
@@ -82,6 +82,13 @@
   the aircraft. Tap an aircraft → small Leaflet popup with Share link (Web Share, else clipboard); the popup is a
   stand-in until the aircraft panel (Phase 7). `clearStatus()` lets modules clear only their own messages.
   Worker redeployed with the callsign route; verified on iPhone (emergency view only tested with mocked data).
+
+- Phase 6: `js/search.js` + `js/airlines.js` (IATA→ICAO table, e.g. A3→AEE, for "A3 123" → AEE123).
+  Suggestions: live aircraft already loaded (callsign prefix, flight number, registration with/without dash),
+  then airports (exact ICAO/IATA, prefix, name/city word, accent-insensitive; large first). "Find live flight"
+  row asks adsb.lol `/v2/callsign/` then `/v2/reg/` (new Worker route) for aircraft outside the view.
+  Airport pick: zoom 11 + small popup until the airport panel (Phase 8). `airports.json` loads on first focus.
+  adsb.lol fields `r`/`t` now normalised as `reg`/`type`. `flashStatus()` moved to `js/status.js`.
 
 ## Known issues
 - airplanes.live answers 403 to the Worker, so there is no fallback if adsb.lol is down. Route kept in the Worker in case it changes.

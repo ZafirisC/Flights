@@ -1,13 +1,8 @@
 // Share link to a flight: ?flight=<callsign> opens the app on that flight.
 import { fetchFlightByCallsign } from './api.js';
-import { showStatus, clearStatus } from './status.js';
+import { flashStatus as flash } from './status.js';
 
 const CALLSIGN_RE = /^[A-Z0-9]{2,8}$/;
-
-function flash(text, ms = 6000) {
-  showStatus(text);
-  setTimeout(() => clearStatus(text), ms);
-}
 
 export function flightFromUrl() {
   const v = (new URLSearchParams(location.search).get('flight') || '').trim().toUpperCase();
@@ -39,15 +34,14 @@ export async function shareFlight(callsign) {
 }
 
 // Centre the map on the shared flight and open it once its marker is loaded.
-export async function openSharedFlight(map, layer, callsign) {
+export async function openSharedFlight(layer, callsign) {
   try {
     const ac = await fetchFlightByCallsign(callsign);
     if (!ac) {
       flash(`Flight ${callsign} is not live right now`);
       return;
     }
-    map.setView([ac.lat, ac.lon], Math.max(map.getZoom(), 9));
-    layer.select(ac.hex);
+    layer.focus(ac);
   } catch {
     flash(`Could not look up flight ${callsign}`);
   }

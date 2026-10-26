@@ -4,7 +4,7 @@ CORS proxy for the sources Phase 2 found blocked. Only these routes are forwarde
 
 | Route | Upstream | Edge cache |
 |---|---|---|
-| `/adsblol/v2/point/{lat}/{lon}/{radius_nm}` | `https://api.adsb.lol` | 5 s |
+| `/adsblol/v2/point/{lat}/{lon}/{radius_nm}`, `/adsblol/v2/callsign/{cs}`, `/adsblol/v2/reg/{reg}` | `https://api.adsb.lol` | 5 s |
 | `/airplaneslive/v2/point/{lat}/{lon}/{radius_nm}` | `https://api.airplanes.live` | 5 s |
 | `/awc/metar?ids=&format=` and `/awc/taf?ids=&format=` | `https://aviationweather.gov/api/data` | 5 min |
 | `/health` | — | — |

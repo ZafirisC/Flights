@@ -203,3 +203,29 @@ html, body {
   font-family: inherit;
   cursor: pointer;
 }
+
+/* Search suggestions */
+#suggestions {
+  margin: 6px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+#suggestions[hidden] { display: none; }
+#suggestions li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+#suggestions li.active, #suggestions li:hover { background: rgba(127, 127, 127, 0.15); }
+#suggestions b { white-space: nowrap; }
+.sg-icon { width: 18px; text-align: center; color: var(--muted); }
+.sg-sub { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

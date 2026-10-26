@@ -143,5 +143,13 @@ export function createAircraftLayer(map, { onUpdate } = {}) {
     cluster.zoomToShowLayer(entry.marker, () => entry.marker.openPopup());
   }
 
-  return { update, select, count: () => markers.size };
+  // Centre the map on an aircraft and open it (now, or once the next fetch loads it).
+  function focus(ac) {
+    map.setView([ac.lat, ac.lon], Math.max(map.getZoom(), 9));
+    select(ac.hex);
+  }
+
+  const list = () => [...markers.values()].map((e) => e.marker.aircraft);
+
+  return { update, select, focus, list, count: () => markers.size };
 }
