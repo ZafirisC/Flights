@@ -1,14 +1,21 @@
 // All network calls go through this module. No fetch anywhere else.
-// Each source has a base URL; point it at the Cloudflare Worker to proxy a source.
-export const SOURCES = {
-  adsbLol: 'https://api.adsb.lol',
-  airplanesLive: 'https://api.airplanes.live',
-  opensky: 'https://opensky-network.org/api',
-  adsbdb: 'https://api.adsbdb.com/v0',
-  planespotters: 'https://api.planespotters.net/pub',
-  aviationWeather: 'https://aviationweather.gov/api/data',
-  openMeteo: 'https://api.open-meteo.com/v1',
-};
+// Each source has a base URL. Sources that block CORS (Phase 2) go through the Cloudflare Worker
+// (worker/worker.js) once WORKER_URL is set.
+export const WORKER_URL = '';
+
+export function sourcesFor(worker) {
+  return {
+    adsbLol: worker ? `${worker}/adsblol` : 'https://api.adsb.lol',
+    airplanesLive: worker ? `${worker}/airplaneslive` : 'https://api.airplanes.live',
+    opensky: 'https://opensky-network.org/api',
+    adsbdb: 'https://api.adsbdb.com/v0',
+    planespotters: 'https://api.planespotters.net/pub',
+    aviationWeather: worker ? `${worker}/awc` : 'https://aviationweather.gov/api/data',
+    openMeteo: 'https://api.open-meteo.com/v1',
+  };
+}
+
+export const SOURCES = sourcesFor(WORKER_URL);
 
 export async function getJSON(url, { timeout = 10000 } = {}) {
   const ctrl = new AbortController();

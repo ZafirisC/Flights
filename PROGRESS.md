@@ -7,7 +7,7 @@
 | 0 | Accounts (GitHub, Cloudflare), empty repo, GitHub Pages on — **by Zaf** | — | Repo exists, Pages URL loads | ☐ |
 | 1 | Skeleton: file structure, `index.html`, empty modules, manifest | Opus | Empty app loads on the Pages URL on PC and iPhone | ☑ |
 | 2 | API check page (`tools/api-check.html`): CORS + response for every source in SPEC §2 | Sonnet | Results table below filled in from desktop Chrome and iPhone Safari | ☑ |
-| 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☐ needed (see Phase 2 decision) |
+| 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ◐ code ready (`worker/`), awaiting deploy + check |
 | 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☐ |
 | 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☐ |
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☐ |
@@ -52,6 +52,11 @@
   (aviationweather). Direct from browser: adsbdb, Planespotters, Open-Meteo. Primary live source: adsb.lol
   via Worker, airplanes.live as fallback; OpenSky dropped (CORS blocked on iPhone, timeout on desktop).
 - Phase 2 desktop run was detected as "Other browser" (not Chrome). CORS is the same in all browsers, so accepted.
+
+- Phase 3: Worker in `worker/` (deploy steps in `worker/README.md`). Routes `/adsblol`, `/airplaneslive`, `/awc`
+  only, with path/query allowlist (not an open proxy). CORS only for zafirisc.github.io and localhost:8000.
+  Edge cache 5 s for positions, 5 min for METAR/TAF. `js/api.js` switches these sources with `WORKER_URL`;
+  `tools/api-check.html?worker=<url>` tests a Worker before that.
 
 ## Known issues
 - (none yet)

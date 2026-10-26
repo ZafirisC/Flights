@@ -1,5 +1,9 @@
 // Phase 2: checks every data source in SPEC §2 from this browser (CORS, status, shape, rate limits).
-import { SOURCES, probe } from '../js/api.js';
+import { WORKER_URL, sourcesFor, probe } from '../js/api.js';
+
+// ?worker=https://flights-proxy.<name>.workers.dev tests the Worker before WORKER_URL is set in api.js.
+const worker = (new URLSearchParams(location.search).get('worker') || WORKER_URL).replace(/\/+$/, '');
+const SOURCES = sourcesFor(worker);
 
 const LAT = 40.64, LON = 22.94, RADIUS_NM = 100; // Thessaloniki
 const ICAO = 'LGTS';
@@ -26,7 +30,7 @@ const CHECKS = [
 ];
 
 const $ = (id) => document.getElementById(id);
-$('env').textContent = `${browser} · ${navigator.userAgent}`;
+$('env').textContent = `${browser} · Worker: ${worker || 'none'} · ${navigator.userAgent}`;
 
 // One-line description of the JSON structure: top-level keys, types and array lengths.
 function shape(body) {
@@ -116,7 +120,7 @@ async function runAll() {
     ? `Lookups used live aircraft ${sample.callsign} / ${sample.hex}.`
     : `No live aircraft found; lookups used fallback ${sample.callsign} / ${sample.hex}.`;
   $('summary').value = [
-    `${browser} — ${new Date().toISOString()}`,
+    `${browser} — ${new Date().toISOString()} — Worker: ${worker || 'none'}`,
     sampleNote,
     '| Source | Result | Notes |',
     '|---|---|---|',
