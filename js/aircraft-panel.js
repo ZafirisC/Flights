@@ -3,7 +3,7 @@
 import { fetchRoute, fetchAircraftInfo, fetchPhoto, fetchMetar, fetchForecast } from './api.js';
 import { emergencyOf } from './aircraft-layer.js';
 import { weatherText } from './forecast.js';
-import { claimPanel, releasePanel } from './panel.js';
+import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -30,7 +30,7 @@ function liveHtml(ac, ageSec) {
 }
 
 export function initAircraftPanel(map, { onClose } = {}) {
-  const el = document.getElementById('panel');
+  const el = document.getElementById('panel-content');
   let hex = null;
   let token = 0; // ignores async results for a panel that was replaced
   let last = null; // { ac, at }
@@ -119,8 +119,8 @@ export function initAircraftPanel(map, { onClose } = {}) {
     const t = ++token;
     last = { ac, at: Date.now() };
     render(ac);
-    el.hidden = false;
-    document.body.classList.add('panel-open');
+    showPanel();
+    revealOnMap(map, [ac.lat, ac.lon]);
     trail = L.polyline([[ac.lat, ac.lon]], { color: '#1565c0', weight: 3, opacity: 0.8, interactive: false }).addTo(map);
     ticker = setInterval(tick, 1000);
     loadFlight(t, ac);
@@ -153,9 +153,8 @@ export function initAircraftPanel(map, { onClose } = {}) {
     clearInterval(ticker);
     trail?.remove();
     trail = null;
-    el.hidden = true;
     el.innerHTML = '';
-    document.body.classList.remove('panel-open');
+    hidePanel();
     if (!silent) onClose?.();
   }
 

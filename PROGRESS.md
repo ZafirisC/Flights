@@ -14,7 +14,7 @@
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☑ |
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☑ |
 | 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☑ |
-| 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☐ |
+| 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ◐ built, awaiting check on Pages |
 | 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ☐ |
 
 ## API check results (Phase 2)
@@ -109,9 +109,13 @@
   panels share `#panel`. `js/geo.js`: distance/bearing. Check page: `tools/metar-check.html` compares our
   decode with aviationweather.gov's parsed fields. Verified on Pages (real METARs + LGTS lists).
 
+- Phase 9: icons in `icons/` (SVG source + PNG 192/512, maskable 512, apple-touch 180; PNGs rendered from the
+  SVG). Manifest with icons; theme-color per light/dark. `sw.js`: same-origin files network-first with
+  revalidation (fixes stale JS after deploys), offline fallback from cache; unpkg libraries cache-first; APIs,
+  tiles and the Worker untouched. Phone bottom sheet: handle to drag between 45% and 88% height, tap toggles,
+  drag down closes. `revealOnMap()` pans so the selected aircraft/airport is not behind the panel.
+
 ## Known issues
-- Phone: the bottom sheet covers the lower half of the map, so the selected airport/aircraft can sit behind it (Phase 9).
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
-- After a deploy, browsers may run cached JS for up to ~10 min (GitHub Pages cache). Hard refresh (Ctrl+F5) when testing.
-  Phase 9 (service worker / versioned files) should handle this.
+- After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
 - airplanes.live answers 403 to the Worker, so there is no fallback if adsb.lol is down. Route kept in the Worker in case it changes.

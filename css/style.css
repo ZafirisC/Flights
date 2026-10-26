@@ -116,19 +116,41 @@ html, body {
 #panel {
   position: fixed;
   z-index: 1001;
-  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
   border: 1px solid var(--border);
-  overflow-y: auto;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.2);
 }
+#panel-content { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.sheet-handle { display: none; }
 
 @media (max-width: 767px) {
   #panel {
     left: 0;
     right: 0;
     bottom: 0;
-    max-height: 60vh;
-    padding: 12px 12px calc(var(--safe-bottom) + 12px);
+    height: var(--sheet-h, 45vh);
     border-radius: 14px 14px 0 0;
+    transition: height 0.2s ease;
+  }
+  #panel.dragging { transition: none; }
+  #panel-content { padding: 0 12px calc(var(--safe-bottom) + 12px); }
+  .sheet-handle {
+    display: block;
+    flex: none;
+    height: 24px;
+    touch-action: none;
+    cursor: grab;
+  }
+  .sheet-handle::before {
+    content: "";
+    display: block;
+    width: 40px;
+    height: 5px;
+    margin: 9px auto 0;
+    border-radius: 3px;
+    background: var(--border);
   }
 }
 
@@ -138,8 +160,8 @@ html, body {
     right: 0;
     bottom: 0;
     width: 380px;
-    padding: 16px;
   }
+  #panel-content { padding: 16px 16px calc(var(--safe-bottom) + 16px); }
 }
 
 /* Aircraft markers */
@@ -221,7 +243,7 @@ html, body {
 /* Aircraft panel */
 #panel[hidden] { display: none; }
 #panel h3 { margin: 14px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding-top: 4px; }
 .panel-title { font-size: 20px; font-weight: 700; }
 .panel-sub { color: var(--muted); }
 .panel-close {

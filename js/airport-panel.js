@@ -3,7 +3,7 @@
 import { fetchMetar, fetchTaf } from './api.js';
 import { decodeMetar, formatTaf } from './metar.js';
 import { airportTraffic } from './airport-traffic.js';
-import { claimPanel, releasePanel } from './panel.js';
+import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
 const REFRESH_MS = 60000;
@@ -59,7 +59,7 @@ function listHtml(items, emptyText, otherLabel) {
 }
 
 export function initAirportPanel(map, layer) {
-  const el = document.getElementById('panel');
+  const el = document.getElementById('panel-content');
   let apt = null;
   let token = 0;
   let tab = 'departures';
@@ -149,8 +149,8 @@ export function initAirportPanel(map, layer) {
         .find((x) => x.ac.hex === li.dataset.hex);
       if (item) layer.focus(item.ac); // opens the aircraft panel, which closes this one
     });
-    el.hidden = false;
-    document.body.classList.add('panel-open');
+    showPanel();
+    revealOnMap(map, [a.lat, a.lon]);
     marker = L.circleMarker([a.lat, a.lon], { radius: 9, color: '#1565c0', weight: 3, fillOpacity: 0.25, interactive: false }).addTo(map);
     renderBody();
     loadTraffic(t);
@@ -165,9 +165,8 @@ export function initAirportPanel(map, layer) {
     releasePanel(yieldPanel);
     marker?.remove();
     marker = null;
-    el.hidden = true;
     el.innerHTML = '';
-    document.body.classList.remove('panel-open');
+    hidePanel();
   }
 
   map.on('click', () => close());

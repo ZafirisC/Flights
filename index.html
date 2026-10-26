@@ -4,7 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Flights</title>
-  <meta name="theme-color" content="#1e293b" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Flights" />
@@ -28,7 +31,10 @@
     <div id="status" hidden role="status"></div>
   </header>
 
-  <aside id="panel" hidden aria-live="polite"></aside>
+  <aside id="panel" hidden>
+    <div class="sheet-handle" role="button" tabindex="0" aria-label="Expand or collapse panel"></div>
+    <div id="panel-content" aria-live="polite"></div>
+  </aside>
 
   <footer id="disclaimer">
     Data from community ADS-B networks. Coverage has gaps. Not for operational use.

@@ -11,6 +11,10 @@ import { flightFromUrl, openSharedFlight, shareFlight } from './share.js';
 import { initAircraftPanel } from './aircraft-panel.js';
 import { initAirportPanel } from './airport-panel.js';
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* app works without it */ });
+}
+
 if (typeof L === 'undefined' || !L.markerClusterGroup) {
   showStatus('Map library failed to load. Check your connection and reload.');
 } else {
