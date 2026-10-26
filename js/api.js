@@ -1,7 +1,7 @@
 // All network calls go through this module. No fetch anywhere else.
 // Each source has a base URL. Sources that block CORS (Phase 2) go through the Cloudflare Worker
 // (worker/worker.js) once WORKER_URL is set.
-export const WORKER_URL = '';
+export const WORKER_URL = 'https://flights-proxy.zkriaris.workers.dev';
 
 export function sourcesFor(worker) {
   return {

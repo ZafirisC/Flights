@@ -7,7 +7,7 @@
 | 0 | Accounts (GitHub, Cloudflare), empty repo, GitHub Pages on — **by Zaf** | — | Repo exists, Pages URL loads | ☐ |
 | 1 | Skeleton: file structure, `index.html`, empty modules, manifest | Opus | Empty app loads on the Pages URL on PC and iPhone | ☑ |
 | 2 | API check page (`tools/api-check.html`): CORS + response for every source in SPEC §2 | Sonnet | Results table below filled in from desktop Chrome and iPhone Safari | ☑ |
-| 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ◐ code ready (`worker/`), awaiting deploy + check |
+| 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☑ |
 | 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☐ |
 | 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☐ |
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☐ |
@@ -58,5 +58,9 @@
   Edge cache 5 s for positions, 5 min for METAR/TAF. `js/api.js` switches these sources with `WORKER_URL`;
   `tools/api-check.html?worker=<url>` tests a Worker before that.
 
+- Phase 3 check (desktop, 2026-10-26, via Worker `https://flights-proxy.zkriaris.workers.dev`): adsb.lol ✅
+  (29 aircraft), METAR ✅, TAF ✅. airplanes.live → HTTP 403 from upstream (it refuses requests from the Worker).
+  `WORKER_URL` set in `js/api.js`. v1 uses adsb.lol only; no live-position fallback for now.
+
 ## Known issues
-- (none yet)
+- airplanes.live answers 403 to the Worker, so there is no fallback if adsb.lol is down. Route kept in the Worker in case it changes.
