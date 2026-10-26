@@ -8,7 +8,7 @@
 | 1 | Skeleton: file structure, `index.html`, empty modules, manifest | Opus | Empty app loads on the Pages URL on PC and iPhone | ☑ |
 | 2 | API check page (`tools/api-check.html`): CORS + response for every source in SPEC §2 | Sonnet | Results table below filled in from desktop Chrome and iPhone Safari | ☑ |
 | 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☑ |
-| 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☐ |
+| 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☑ |
 | 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☐ |
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☐ |
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☐ |
@@ -61,6 +61,13 @@
 - Phase 3 check (desktop + iPhone Safari, 2026-10-26, same results on both; via Worker `https://flights-proxy.zkriaris.workers.dev`): adsb.lol ✅
   (29 aircraft), METAR ✅, TAF ✅. airplanes.live → HTTP 403 from upstream (it refuses requests from the Worker).
   `WORKER_URL` set in `js/api.js`. v1 uses adsb.lol only; no live-position fallback for now.
+
+- Phase 4: `scripts/build_airports.py` (stdlib only) downloads OurAirports CSVs from the GitHub mirror
+  (`raw.githubusercontent.com/davidmegginson/ourairports-data`), or takes `--airports/--runways` local files.
+  Keeps large + medium airports, plus small ones with scheduled service and an ICAO/IATA code; open runways only.
+  Result 2026-10-26: 6096 airports, 1.41 MB (~0.3 MB gzipped). Fields: icao, iata, name, city, country, lat, lon,
+  elev (ft), type, rwy[id, len, wid, surf, hdg]. `icao` falls back to gps_code/ident when it is 4 letters.
+  Regenerate: `python3 scripts/build_airports.py`.
 
 ## Known issues
 - airplanes.live answers 403 to the Worker, so there is no fallback if adsb.lol is down. Route kept in the Worker in case it changes.
