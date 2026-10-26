@@ -10,7 +10,7 @@
 | 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☑ |
 | 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☑ |
 | 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☑ |
-| 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ◐ built, awaiting Worker redeploy + iPhone check |
+| 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☑ |
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☐ |
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☐ |
 | 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☐ |
@@ -81,6 +81,7 @@
   localStorage. Share: `?flight=<callsign>` looks up `/v2/callsign/` (new Worker route), centres the map and opens
   the aircraft. Tap an aircraft → small Leaflet popup with Share link (Web Share, else clipboard); the popup is a
   stand-in until the aircraft panel (Phase 7). `clearStatus()` lets modules clear only their own messages.
+  Worker redeployed with the callsign route; verified on iPhone (emergency view only tested with mocked data).
 
 ## Known issues
 - airplanes.live answers 403 to the Worker, so there is no fallback if adsb.lol is down. Route kept in the Worker in case it changes.
