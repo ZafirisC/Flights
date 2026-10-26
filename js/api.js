@@ -35,8 +35,17 @@ export const MAX_RADIUS_NM = 250; // adsb.lol limit
 
 export async function fetchAircraft(lat, lon, radiusNm) {
   const r = Math.max(1, Math.min(MAX_RADIUS_NM, Math.ceil(radiusNm)));
-  const url = `${SOURCES.adsbLol}/v2/point/${lat.toFixed(2)}/${lon.toFixed(2)}/${r}`;
-  const data = await getJSON(url);
+  const data = await getJSON(`${SOURCES.adsbLol}/v2/point/${lat.toFixed(2)}/${lon.toFixed(2)}/${r}`);
+  return normaliseAdsbLol(data);
+}
+
+// Live aircraft with this callsign (null if not airborne / not seen).
+export async function fetchFlightByCallsign(callsign) {
+  const data = await getJSON(`${SOURCES.adsbLol}/v2/callsign/${encodeURIComponent(callsign)}`);
+  return normaliseAdsbLol(data)[0] || null;
+}
+
+function normaliseAdsbLol(data) {
   return (data.ac || [])
     .filter((a) => a.hex && typeof a.lat === 'number' && typeof a.lon === 'number')
     .map((a) => ({

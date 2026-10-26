@@ -10,7 +10,7 @@
 | 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☑ |
 | 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☑ |
 | 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☑ |
-| 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☐ |
+| 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ◐ built, awaiting Worker redeploy + iPhone check |
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☐ |
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☐ |
 | 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☐ |
@@ -74,6 +74,13 @@
   (markers updated in place by hex), `js/altitude.js` (hsl scale orange → purple, 0–40 000 ft; ground grey; legend),
   `fetchAircraft()` in `js/api.js` normalises adsb.lol. Status messages moved under the search bar.
   Tested in the sandbox with mocked data, then verified live on Pages (PC + iPhone).
+
+- Phase 5b: Leaflet.markercluster 1.5.3 (unpkg, SRI). Clustering below zoom 8; emergencies (7500/7600/7700) in
+  a separate unclustered layer with red pulsing icon and red chips under the search bar (tap → popup).
+  Dark map = CSS filter on OSM tiles (no extra tile source); `js/theme.js` toggle Auto/Dark/Light, saved in
+  localStorage. Share: `?flight=<callsign>` looks up `/v2/callsign/` (new Worker route), centres the map and opens
+  the aircraft. Tap an aircraft → small Leaflet popup with Share link (Web Share, else clipboard); the popup is a
+  stand-in until the aircraft panel (Phase 7). `clearStatus()` lets modules clear only their own messages.
 
 ## Known issues
 - airplanes.live answers 403 to the Worker, so there is no fallback if adsb.lol is down. Route kept in the Worker in case it changes.

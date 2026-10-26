@@ -8,9 +8,9 @@ const ALLOWED_ORIGINS = [
 
 const NUM = '-?\\d+(?:\\.\\d+)?';
 const ROUTES = [
-  // Live positions: /v2/point/{lat}/{lon}/{radius_nm}
+  // Live positions: /v2/point/{lat}/{lon}/{radius_nm}; share links: /v2/callsign/{callsign}
   { prefix: '/adsblol', upstream: 'https://api.adsb.lol',
-    path: new RegExp(`^/v2/point/${NUM}/${NUM}/\\d{1,3}$`), ttl: 5 },
+    path: new RegExp(`^/v2/(point/${NUM}/${NUM}/\\d{1,3}|callsign/[A-Za-z0-9]{1,8})$`), ttl: 5 },
   { prefix: '/airplaneslive', upstream: 'https://api.airplanes.live',
     path: new RegExp(`^/v2/point/${NUM}/${NUM}/\\d{1,3}$`), ttl: 5 },
   // METAR / TAF: /metar?ids=LGTS&format=json, /taf?ids=LGTS&format=json
