@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Flights – METAR check</title>
+  <style>
+    body { margin: 0; padding: 12px; font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    input { width: 100%; min-height: 44px; font-size: 16px; box-sizing: border-box; padding: 0 8px; }
+    button { min-height: 44px; padding: 0 16px; margin: 8px 0; font-size: 16px; }
+    .card { border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin: 10px 0; }
+    code { display: block; white-space: pre-wrap; word-break: break-word; background: #f4f4f4; padding: 6px; border-radius: 4px; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+    td, th { text-align: left; padding: 3px 4px; border-bottom: 1px solid #ddd; vertical-align: top; }
+    th { font-weight: 600; width: 30%; }
+    .diff { color: #c62828; font-weight: 600; }
+    @media (prefers-color-scheme: dark) { body { background: #111; color: #ddd; } code { background: #222; } .card { border-color: #444; } td, th { border-color: #333; } }
+  </style>
+</head>
+<body>
+  <h1>METAR check</h1>
+  <p>Our decoder next to aviationweather.gov's own parsed values. Red = mismatch to look at.</p>
+  <input id="ids" value="LGTS LGAV EGLL KJFK UUEE KDEN" aria-label="ICAO codes" />
+  <button id="run">Decode</button>
+  <div id="out"></div>
+  <script type="module" src="metar-check.js"></script>
+</body>
+</html>

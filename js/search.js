@@ -1,5 +1,4 @@
 // Search box: live flights (callsign, flight number, registration) and airports (ICAO, IATA, name, city).
-/* global L */
 import { fetchAirports, fetchFlightByCallsign, fetchAircraftByReg } from './api.js';
 import { IATA_TO_ICAO } from './airlines.js';
 import { flashStatus, clearStatus } from './status.js';
@@ -60,12 +59,11 @@ function matchFlights(q, aircraft) {
     .slice(0, MAX_FLIGHTS);
 }
 
-export function initSearch(input, map, layer) {
+export function initSearch(input, map, layer, { onAirport } = {}) {
   const list = document.getElementById('suggestions');
   let items = []; // [{ html, run }]
   let active = -1;
   let timer = null;
-  let airportMarker = null;
 
   function close() {
     list.hidden = true;
@@ -96,14 +94,8 @@ export function initSearch(input, map, layer) {
 
   function showAirport(a) {
     input.value = a.iata || a.icao || a.name;
-    map.setView([a.lat, a.lon], 11);
-    airportMarker?.remove();
-    const codes = [a.icao, a.iata].filter(Boolean).join(' / ');
-    airportMarker = L.circleMarker([a.lat, a.lon], { radius: 8, color: '#1565c0', weight: 3, fillOpacity: 0.3 })
-      .bindPopup(`<div class="ac-popup"><b>${esc(a.name)}</b><div>${esc(codes)}</div>
-        <div>${esc([a.city, a.country].filter(Boolean).join(', '))}</div></div>`)
-      .addTo(map)
-      .openPopup();
+    map.setView([a.lat, a.lon], 10);
+    onAirport?.(a);
   }
 
   // Not in the loaded aircraft: ask the source by callsign, then by registration.

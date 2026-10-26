@@ -261,3 +261,27 @@ html, body {
 @media (min-width: 768px) {
   body.panel-open .leaflet-right { right: 380px; }
 }
+
+/* Airport panel */
+#panel .tabs { display: flex; gap: 4px; margin: 12px 0 8px; border-bottom: 1px solid var(--border); }
+#panel .tabs button {
+  flex: 1; min-height: 44px; border: none; border-bottom: 3px solid transparent; background: none;
+  color: var(--muted); font: inherit; font-weight: 600; cursor: pointer;
+}
+#panel .tabs button.on { color: var(--fg); border-bottom-color: #1565c0; }
+#panel ul.flights { list-style: none; margin: 0; padding: 0; }
+#panel ul.flights li {
+  display: flex; justify-content: space-between; gap: 10px; min-height: 44px; padding: 6px 0;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+}
+#panel ul.flights li:hover { background: rgba(127, 127, 127, 0.1); }
+#panel ul.flights .sub { display: block; color: var(--muted); font-size: 12px; }
+#panel ul.flights .right { text-align: right; font-size: 13px; }
+#panel .wx-head { margin: 12px 0 4px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+#panel .raw { display: block; margin: 0 0 6px; padding: 6px 8px; border-radius: 6px; background: rgba(127, 127, 127, 0.12);
+  font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
+.cat { padding: 2px 8px; border-radius: 10px; color: #fff; font-size: 12px; font-weight: 700; }
+.cat-VFR { background: #2e7d32; }
+.cat-MVFR { background: #1565c0; }
+.cat-IFR { background: #c62828; }
+.cat-LIFR { background: #8e24aa; }

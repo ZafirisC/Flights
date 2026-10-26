@@ -9,6 +9,7 @@ import { startTraffic } from './traffic.js';
 import { initTheme } from './theme.js';
 import { flightFromUrl, openSharedFlight, shareFlight } from './share.js';
 import { initAircraftPanel } from './aircraft-panel.js';
+import { initAirportPanel } from './airport-panel.js';
 
 if (typeof L === 'undefined' || !L.markerClusterGroup) {
   showStatus('Map library failed to load. Check your connection and reload.');
@@ -35,5 +36,6 @@ async function start() {
   const shared = flightFromUrl();
   if (shared) await openSharedFlight(layer, shared); // before polling, so the first fetch is at the flight
   startTraffic(map, layer);
-  initSearch(document.getElementById('search'), map, layer);
+  const airportPanel = initAirportPanel(map, layer);
+  initSearch(document.getElementById('search'), map, layer, { onAirport: (a) => airportPanel.open(a) });
 }

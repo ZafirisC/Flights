@@ -3,6 +3,7 @@
 import { fetchRoute, fetchAircraftInfo, fetchPhoto, fetchMetar, fetchForecast } from './api.js';
 import { emergencyOf } from './aircraft-layer.js';
 import { weatherText } from './forecast.js';
+import { claimPanel, releasePanel } from './panel.js';
 
 const NA = 'Not available';
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -109,8 +110,11 @@ export function initAircraftPanel(map, { onClose } = {}) {
         : row('Forecast', null)}`);
   }
 
+  const yieldPanel = () => close(); // another panel took #panel
+
   function open(ac) {
     close({ silent: true });
+    claimPanel(yieldPanel);
     hex = ac.hex;
     const t = ++token;
     last = { ac, at: Date.now() };
@@ -145,6 +149,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     if (!hex) return;
     hex = null;
     token++;
+    releasePanel(yieldPanel);
     clearInterval(ticker);
     trail?.remove();
     trail = null;

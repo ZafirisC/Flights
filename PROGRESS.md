@@ -13,7 +13,7 @@
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☑ |
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☑ |
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☑ |
-| 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☐ |
+| 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ◐ built, awaiting check on Pages |
 | 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☐ |
 | 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ☐ |
 
@@ -99,7 +99,18 @@
   aircraft and photos per session, METAR 5 min, forecast 15 min; adsbdb 404 → "Not available".
   Bottom sheet is not draggable yet (Phase 9). Verified on Pages (PC + iPhone).
 
+- Phase 8: `js/airport-panel.js` (opened from search; header with elevation + runways; tabs Departures /
+  Arrivals / Weather; tap a flight → aircraft panel). `js/airport-traffic.js` implements SPEC §5: one adsb.lol
+  fetch of 250 nm around the airport, route lookups only for candidates (on ground ≤ 3 nm, climbing ≤ 50 nm,
+  or airborne with track within 60° of the airport / ≤ 30 nm), max 60 lookups per refresh, 4 at a time,
+  cached per session. Refresh every 60 s while open and visible. `js/metar.js` decodes METAR (wind incl.
+  gust/variable/MPS, visibility m/SM incl. fractions, CAVOK, weather, clouds, temp/dew, Q/A QNH) and gives the
+  FAA flight category; TAF shown raw, one change group per line. `js/panel.js` lets the aircraft and airport
+  panels share `#panel`. `js/geo.js`: distance/bearing. Check page: `tools/metar-check.html` compares our
+  decode with aviationweather.gov's parsed fields.
+
 ## Known issues
+- Phone: the bottom sheet covers the lower half of the map, so the selected airport/aircraft can sit behind it (Phase 9).
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, browsers may run cached JS for up to ~10 min (GitHub Pages cache). Hard refresh (Ctrl+F5) when testing.
   Phase 9 (service worker / versioned files) should handle this.

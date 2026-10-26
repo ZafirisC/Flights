@@ -94,6 +94,12 @@ export async function fetchMetar(icao) {
   return Array.isArray(data) && data.length ? data[0] : null;
 }
 
+// Latest TAF for an ICAO airport (aviationweather.gov via Worker), cached 15 min: raw AWC object or null.
+export async function fetchTaf(icao) {
+  const data = await cachedJSON(`${SOURCES.aviationWeather}/taf?ids=${encodeURIComponent(icao)}&format=json`, 15 * 60000);
+  return Array.isArray(data) && data.length ? data[0] : null;
+}
+
 // Next hours of forecast at a point (Open-Meteo), cached 15 min: [{ time, temp, windDir, windKt, precipProb, code }].
 export async function fetchForecast(lat, lon, hours = 7) {
   const url = `${SOURCES.openMeteo}/forecast?latitude=${lat.toFixed(2)}&longitude=${lon.toFixed(2)}`
