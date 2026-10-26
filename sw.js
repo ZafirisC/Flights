@@ -22,12 +22,14 @@ self.addEventListener('fetch', (e) => {
 
 async function networkFirst(req) {
   const cache = await caches.open(CACHE);
+  // Pages are stored without their query (?flight=…), so share links do not grow the cache.
+  const key = req.mode === 'navigate' ? new URL(req.url).pathname : req;
   try {
     const res = await fetch(req, { cache: 'no-cache' });
-    if (res.ok) cache.put(req, res.clone());
+    if (res.ok) cache.put(key, res.clone());
     return res;
   } catch (err) {
-    const hit = await cache.match(req, { ignoreSearch: req.mode === 'navigate' });
+    const hit = await cache.match(key);
     if (hit) return hit;
     throw err;
   }

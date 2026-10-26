@@ -165,7 +165,8 @@ export function initSearch(input, map, layer, { onAirport } = {}) {
       clearTimeout(timer);
       const typed = active <= 0; // arrow keys not used: pick the best match for the current text
       loadAirports().then(() => { if (typed) update(); choose(Math.max(active, 0)); });
-    } else if (e.key === 'Escape') {
+    } else if (e.key === 'Escape' && !list.hidden) {
+      e.stopPropagation(); // keep an open panel open
       close();
     }
   });

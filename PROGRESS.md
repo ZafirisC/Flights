@@ -15,7 +15,7 @@
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☑ |
 | 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☑ |
 | 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☑ |
-| 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ☐ |
+| 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ◐ code review + fixes done, awaiting user test round |
 
 ## API check results (Phase 2)
 
@@ -115,6 +115,13 @@
   tiles and the Worker untouched. Phone bottom sheet: handle to drag between 45% and 88% height, tap toggles,
   drag down closes. `revealOnMap()` pans so the selected aircraft/airport is not behind the panel.
   Verified on Pages: iPhone home screen app and desktop.
+
+- Phase 10 (review + automated browser tests with mocked sources, phone and desktop sizes):
+  fixed — last map view was never remembered (SPEC §3), now saved in localStorage; service worker stored one
+  cache entry per `?flight=` link, now one per page; status-bar colour now follows the theme toggle;
+  Open-Meteo attribution added (CC BY 4.0); Escape in the search box no longer closes the open panel.
+  Checked OK — source failures (502, network error) keep the last aircraft and show a retrying message, then
+  clear on recovery; adsbdb/Planespotters failures show "Not available"; airport list failure shows a message.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.

@@ -107,7 +107,8 @@ export function initAircraftPanel(map, { onClose } = {}) {
           <td>${h.temp !== null ? `${Math.round(h.temp)}°C` : '–'}</td>
           <td>${h.windKt !== null ? `${compass(h.windDir)} ${Math.round(h.windKt)} kt` : '–'}</td>
           <td>${h.precipProb !== null ? `${h.precipProb}%` : '–'}</td></tr>`).join('')}</table>`
-        : row('Forecast', null)}`);
+        : row('Forecast', null)}
+      ${fc?.length ? '<div class="note">Forecast: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a></div>' : ''}`);
   }
 
   const yieldPanel = () => close(); // another panel took #panel

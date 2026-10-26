@@ -5,9 +5,16 @@ import { load, save } from './storage.js';
 const MODES = ['auto', 'dark', 'light'];
 const LABELS = { auto: 'Auto', dark: 'Dark', light: 'Light' };
 
+const BAR_COLORS = { light: '#ffffff', dark: '#0f172a' };
+
 function apply(mode) {
   if (mode === 'auto') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = mode;
+  // Browser / iOS status bar colour: per system scheme in Auto, fixed otherwise.
+  document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+    const scheme = meta.media.includes('dark') ? 'dark' : 'light';
+    meta.content = BAR_COLORS[mode === 'auto' ? scheme : mode];
+  });
 }
 
 export function initTheme(map) {
