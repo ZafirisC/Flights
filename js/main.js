@@ -8,6 +8,7 @@ import { renderAlerts } from './alerts.js';
 import { startTraffic } from './traffic.js';
 import { initTheme } from './theme.js';
 import { flightFromUrl, openSharedFlight, shareFlight } from './share.js';
+import { initAircraftPanel } from './aircraft-panel.js';
 
 if (typeof L === 'undefined' || !L.markerClusterGroup) {
   showStatus('Map library failed to load. Check your connection and reload.');
@@ -19,9 +20,14 @@ async function start() {
   const map = initMap('map');
   initTheme(map);
   addAltitudeLegend(map);
-  const layer = createAircraftLayer(map, { onUpdate: (aircraft) => renderAlerts(aircraft, (hex) => layer.select(hex)) });
+  const panel = initAircraftPanel(map, { onClose: () => layer.select(null) });
+  const layer = createAircraftLayer(map, {
+    onUpdate: (aircraft) => renderAlerts(aircraft, (hex) => layer.select(hex)),
+    onSelect: (ac) => (ac ? panel.open(ac) : panel.close({ silent: true })),
+    onSelectedUpdate: (ac) => panel.update(ac),
+  });
 
-  map.getContainer().addEventListener('click', (e) => {
+  document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-share]');
     if (btn) shareFlight(btn.dataset.share);
   });

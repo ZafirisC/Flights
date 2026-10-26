@@ -1,5 +1,5 @@
 // Draws aircraft markers on the map and updates them in place by hex.
-// Normal aircraft are clustered at low zoom; emergencies are never clustered and drawn on top.
+// Normal aircraft are clustered at low zoom; emergencies and the selected aircraft are never clustered.
 /* global L */
 import { altitudeColor } from './altitude.js';
 
@@ -9,17 +9,15 @@ const EMERGENCIES = { 7500: 'Hijack', 7600: 'Radio failure', 7700: 'Emergency' }
 
 export const emergencyOf = (ac) => EMERGENCIES[ac.squawk] || null;
 
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-
-function iconFor(ac) {
+function iconFor(ac, selected) {
   const emergency = !!emergencyOf(ac);
   const color = emergency ? EMERGENCY_COLOR : altitudeColor(ac.alt, ac.onGround);
   const rot = Math.round(ac.track ?? 0);
   const size = emergency ? 32 : 26;
   return {
-    key: `${color}|${rot}`,
+    key: `${color}|${rot}|${selected}`,
     icon: L.divIcon({
-      className: emergency ? 'ac-icon ac-emergency' : 'ac-icon',
+      className: `ac-icon${emergency ? ' ac-emergency' : ''}${selected ? ' ac-selected' : ''}`,
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
       html: `<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="transform: rotate(${rot}deg)">
@@ -28,122 +26,117 @@ function iconFor(ac) {
   };
 }
 
-function popupHtml(ac) {
-  const emg = emergencyOf(ac);
-  const alt = ac.onGround ? 'Ground' : ac.alt !== null ? `${ac.alt.toLocaleString('en')} ft` : 'Not available';
-  const gs = ac.gs !== null ? `${Math.round(ac.gs)} kt` : 'Not available';
-  return `<div class="ac-popup">
-    <b>${esc(ac.callsign || ac.hex.toUpperCase())}</b>
-    ${emg ? `<div class="emg">${esc(ac.squawk)} · ${emg}</div>` : ''}
-    <div>Altitude: ${alt}</div>
-    <div>Speed: ${gs}</div>
-    <div>Squawk: ${ac.squawk ? esc(ac.squawk) : 'Not available'}</div>
-    ${ac.callsign ? `<button type="button" data-share="${esc(ac.callsign)}">Share link</button>` : ''}
-  </div>`;
-}
-
-export function createAircraftLayer(map, { onUpdate } = {}) {
+// onSelect(ac | null) fires when the selection changes; onSelectedUpdate(ac) on each fetch while selected.
+export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate } = {}) {
   const cluster = L.markerClusterGroup({
     disableClusteringAtZoom: 8,
     maxClusterRadius: 50,
     showCoverageOnHover: false,
     spiderfyOnMaxZoom: false,
   });
-  const pinned = L.layerGroup(); // emergencies: never clustered
+  const pinned = L.layerGroup(); // never clustered
   map.addLayer(cluster);
   map.addLayer(pinned);
 
   const markers = new Map(); // hex → { marker, key, pinned }
-  let openHex = null; // aircraft whose popup is open
+  let selectedHex = null;
   let pendingHex = null; // select() called before the aircraft was loaded
 
+  const wantsPin = (ac) => !!emergencyOf(ac) || ac.hex === selectedHex;
+
   function create(ac) {
-    const { key, icon } = iconFor(ac);
+    const { key, icon } = iconFor(ac, ac.hex === selectedHex);
     const marker = L.marker([ac.lat, ac.lon], {
-      icon, keyboard: false, title: ac.callsign || ac.hex, zIndexOffset: emergencyOf(ac) ? 1000 : 0,
+      icon, keyboard: false, title: ac.callsign || ac.hex, zIndexOffset: wantsPin(ac) ? 1000 : 0,
     });
     marker.aircraft = ac;
-    marker.bindPopup(() => popupHtml(marker.aircraft), { autoPan: true });
-    marker.on('popupopen', () => { openHex = ac.hex; });
-    marker.on('popupclose', () => {
-      if (openHex === ac.hex) openHex = null;
-      // Its cluster position was frozen while the popup was open; re-insert to refresh it.
-      // Deferred: the close may come from markercluster itself while it is redrawing.
-      setTimeout(() => {
-        const entry = markers.get(ac.hex);
-        if (entry?.marker === marker && !entry.pinned && openHex !== ac.hex && cluster.hasLayer(marker)) {
-          cluster.removeLayer(marker);
-          cluster.addLayer(marker);
-        }
-      }, 0);
-    });
-    return { marker, key, pinned: !!emergencyOf(ac) };
+    marker.on('click', () => select(ac.hex));
+    return { marker, key, pinned: wantsPin(ac) };
   }
+
+  // Applies icon, z-order and layer (cluster or pinned) for one aircraft.
+  // Cluster moves are collected so markercluster can do them in bulk (remove → move → add).
+  function place(entry, ac, batch) {
+    const { marker } = entry;
+    marker.aircraft = ac;
+    const { key, icon } = iconFor(ac, ac.hex === selectedHex);
+    if (entry.key !== key) { marker.setIcon(icon); entry.key = key; }
+    const pin = wantsPin(ac);
+    marker.setZIndexOffset(pin ? 1000 : 0);
+    if (entry.pinned) pinned.removeLayer(marker);
+    else batch.out.push(marker);
+    batch.moves.push([marker, ac]);
+    if (pin) batch.pin.push(marker);
+    else batch.in.push(marker);
+    entry.pinned = pin;
+  }
+
+  function apply(batch) {
+    cluster.removeLayers(batch.out);
+    for (const [marker, ac] of batch.moves) marker.setLatLng([ac.lat, ac.lon]);
+    cluster.addLayers(batch.in);
+    for (const m of batch.pin) pinned.addLayer(m);
+  }
+
+  const newBatch = () => ({ out: [], in: [], pin: [], moves: [] });
 
   function update(aircraft) {
     const seen = new Set();
-    const clusterOut = [];
-    const clusterIn = [];
-    const moves = [];
-
+    const batch = newBatch();
     for (const ac of aircraft) {
       seen.add(ac.hex);
-      const wantPinned = !!emergencyOf(ac);
       let entry = markers.get(ac.hex);
       if (!entry) {
         entry = create(ac);
         markers.set(ac.hex, entry);
-        (entry.pinned ? pinned.addLayer(entry.marker) : clusterIn.push(entry.marker));
-        continue;
-      }
-      const { marker } = entry;
-      marker.aircraft = ac;
-      const { key, icon } = iconFor(ac);
-      if (entry.key !== key) { marker.setIcon(icon); entry.key = key; }
-      marker.setZIndexOffset(wantPinned ? 1000 : 0);
-
-      if (entry.pinned !== wantPinned) {
-        (entry.pinned ? pinned.removeLayer(marker) : clusterOut.push(marker));
-        moves.push([marker, ac]);
-        (wantPinned ? pinned.addLayer(marker) : clusterIn.push(marker));
-        entry.pinned = wantPinned;
-      } else if (entry.pinned || ac.hex === openHex) {
-        marker.setLatLng([ac.lat, ac.lon]); // not clustered, or keep its popup open
+        (entry.pinned ? batch.pin : batch.in).push(entry.marker);
+      } else if (entry.pinned && wantsPin(ac)) {
+        entry.marker.aircraft = ac;
+        const { key, icon } = iconFor(ac, ac.hex === selectedHex);
+        if (entry.key !== key) { entry.marker.setIcon(icon); entry.key = key; }
+        entry.marker.setLatLng([ac.lat, ac.lon]);
       } else {
-        clusterOut.push(marker); // markercluster needs remove → move → add
-        moves.push([marker, ac]);
-        clusterIn.push(marker);
+        place(entry, ac, batch);
       }
-      if (ac.hex === openHex) marker.setPopupContent(popupHtml(ac));
     }
-
     for (const [hex, entry] of markers) {
       if (seen.has(hex)) continue;
-      (entry.pinned ? pinned.removeLayer(entry.marker) : clusterOut.push(entry.marker));
+      if (entry.pinned) pinned.removeLayer(entry.marker);
+      else batch.out.push(entry.marker);
       markers.delete(hex);
     }
-
-    cluster.removeLayers(clusterOut);
-    for (const [marker, ac] of moves) marker.setLatLng([ac.lat, ac.lon]);
-    cluster.addLayers(clusterIn);
+    apply(batch);
 
     if (pendingHex && markers.has(pendingHex)) select(pendingHex);
+    if (selectedHex && markers.has(selectedHex)) onSelectedUpdate?.(markers.get(selectedHex).marker.aircraft);
     onUpdate?.(aircraft);
   }
 
-  // Open an aircraft's popup, zooming out of its cluster if needed.
-  function select(hex) {
+  function restyle(hex) {
     const entry = markers.get(hex);
-    if (!entry) { pendingHex = hex; return; }
-    pendingHex = null;
-    const latlng = entry.marker.getLatLng();
-    if (entry.pinned) { entry.marker.openPopup(); return; }
-    // Bring it into view first; markercluster drops off-screen markers (and their popups) while panning.
-    if (!map.getBounds().contains(latlng)) map.panTo(latlng, { animate: false });
-    cluster.zoomToShowLayer(entry.marker, () => entry.marker.openPopup());
+    if (!entry) return;
+    const batch = newBatch();
+    place(entry, entry.marker.aircraft, batch);
+    apply(batch);
   }
 
-  // Centre the map on an aircraft and open it (now, or once the next fetch loads it).
+  // Select an aircraft (or null): highlights it, keeps it out of clusters and tells onSelect.
+  function select(hex) {
+    if (hex && !markers.has(hex)) { pendingHex = hex; return; }
+    pendingHex = null;
+    if (hex === selectedHex) return;
+    const previous = selectedHex;
+    selectedHex = hex;
+    if (previous) restyle(previous);
+    if (hex) {
+      restyle(hex);
+      const latlng = markers.get(hex).marker.getLatLng();
+      if (!map.getBounds().contains(latlng)) map.panTo(latlng);
+    }
+    onSelect?.(hex ? markers.get(hex).marker.aircraft : null);
+  }
+
+  // Centre the map on an aircraft and select it (now, or once the next fetch loads it).
   function focus(ac) {
     map.setView([ac.lat, ac.lon], Math.max(map.getZoom(), 9));
     select(ac.hex);

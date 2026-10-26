@@ -12,7 +12,7 @@
 | 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☑ |
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☑ |
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☑ |
-| 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☐ |
+| 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ◐ built, awaiting check on Pages |
 | 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☐ |
 | 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☐ |
 | 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ☐ |
@@ -91,7 +91,16 @@
   adsb.lol fields `r`/`t` now normalised as `reg`/`type`. `flashStatus()` moved to `js/status.js`.
   Verified on iPhone Safari and desktop Firefox (desktop first needed a hard refresh: old cached JS).
 
+- Phase 7: `js/aircraft-panel.js` replaces the marker popup. Tap aircraft → panel (bottom sheet on phone, right
+  panel on desktop); selected aircraft gets a blue ring and is never clustered. Sections: Flight (adsbdb route),
+  Aircraft (adsbdb + Planespotters photo with credit; falls back to adsb.lol reg/type), Live (ticks "last message"
+  every second), Destination weather (METAR via Worker + Open-Meteo now/+2/+4/+6 h, airport local time).
+  Trail = positions received while the panel is open. Close: ×, Esc, or tap on the map. `js/api.js` caches routes,
+  aircraft and photos per session, METAR 5 min, forecast 15 min; adsbdb 404 → "Not available".
+  Bottom sheet is not draggable yet (Phase 9).
+
 ## Known issues
+- Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, browsers may run cached JS for up to ~10 min (GitHub Pages cache). Hard refresh (Ctrl+F5) when testing.
   Phase 9 (service worker / versioned files) should handle this.
 - airplanes.live answers 403 to the Worker, so there is no fallback if adsb.lol is down. Route kept in the Worker in case it changes.

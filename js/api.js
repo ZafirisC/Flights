@@ -22,11 +22,94 @@ export async function getJSON(url, { timeout = 10000 } = {}) {
   const timer = setTimeout(() => ctrl.abort(), timeout);
   try {
     const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
     return await res.json();
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Cached GET: one request per key per `ttl` ms (Infinity = whole session). 404 → null.
+const cache = new Map(); // key → { at, promise }
+function cachedJSON(url, ttl) {
+  const hit = cache.get(url);
+  if (hit && Date.now() - hit.at < ttl) return hit.promise;
+  const promise = getJSON(url).catch((err) => {
+    if (err.status === 404) return null;
+    cache.delete(url); // retry next time
+    throw err;
+  });
+  cache.set(url, { at: Date.now(), promise });
+  return promise;
+}
+
+const place = (p) => p && {
+  icao: p.icao_code || null,
+  iata: p.iata_code || null,
+  name: p.name || null,
+  city: p.municipality || null,
+  country: p.country_name || null,
+  lat: p.latitude ?? null,
+  lon: p.longitude ?? null,
+};
+
+// Route for a callsign (adsbdb): { airline: { name, icao, iata }, origin, destination } or null.
+export async function fetchRoute(callsign) {
+  const data = await cachedJSON(`${SOURCES.adsbdb}/callsign/${encodeURIComponent(callsign)}`, Infinity);
+  const r = data?.response?.flightroute;
+  if (!r) return null;
+  return {
+    airline: r.airline ? { name: r.airline.name, icao: r.airline.icao, iata: r.airline.iata } : null,
+    origin: place(r.origin),
+    destination: place(r.destination),
+  };
+}
+
+// Aircraft details for a Mode S hex (adsbdb): { registration, type, manufacturer, icaoType, owner, ownerCountry } or null.
+export async function fetchAircraftInfo(hex) {
+  const data = await cachedJSON(`${SOURCES.adsbdb}/aircraft/${encodeURIComponent(hex)}`, Infinity);
+  const a = data?.response?.aircraft;
+  if (!a) return null;
+  return {
+    registration: a.registration || null,
+    type: a.type || null,
+    manufacturer: a.manufacturer || null,
+    icaoType: a.icao_type || null,
+    owner: a.registered_owner || null,
+    ownerCountry: a.registered_owner_country_name || null,
+  };
+}
+
+// First Planespotters photo for a hex: { src, link, photographer } or null. Credit is required when shown.
+export async function fetchPhoto(hex) {
+  const data = await cachedJSON(`${SOURCES.planespotters}/photos/hex/${encodeURIComponent(hex)}`, Infinity);
+  const p = data?.photos?.[0];
+  if (!p) return null;
+  return { src: (p.thumbnail_large || p.thumbnail)?.src, link: p.link, photographer: p.photographer || null };
+}
+
+// Latest METAR for an ICAO airport (aviationweather.gov via Worker), cached 5 min: raw AWC object or null.
+export async function fetchMetar(icao) {
+  const data = await cachedJSON(`${SOURCES.aviationWeather}/metar?ids=${encodeURIComponent(icao)}&format=json`, 5 * 60000);
+  return Array.isArray(data) && data.length ? data[0] : null;
+}
+
+// Next hours of forecast at a point (Open-Meteo), cached 15 min: [{ time, temp, windDir, windKt, precipProb, code }].
+export async function fetchForecast(lat, lon, hours = 7) {
+  const url = `${SOURCES.openMeteo}/forecast?latitude=${lat.toFixed(2)}&longitude=${lon.toFixed(2)}`
+    + '&hourly=temperature_2m,wind_direction_10m,wind_speed_10m,precipitation_probability,weather_code'
+    + `&wind_speed_unit=kn&timezone=auto&forecast_hours=${hours}`;
+  const data = await cachedJSON(url, 15 * 60000);
+  const h = data?.hourly;
+  if (!h?.time) return null;
+  return h.time.map((time, i) => ({
+    time,
+    temp: h.temperature_2m?.[i] ?? null,
+    windDir: h.wind_direction_10m?.[i] ?? null,
+    windKt: h.wind_speed_10m?.[i] ?? null,
+    precipProb: h.precipitation_probability?.[i] ?? null,
+    code: h.weather_code?.[i] ?? null,
+  }));
 }
 
 // Live aircraft around a point (adsb.lol v2), normalised to:
