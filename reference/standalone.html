@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#14161a" />
+<title>Flight Tracker (χωρίς server)</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  html, body, #map { height: 100%; margin: 0; padding: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  body { -webkit-tap-highlight-color: transparent; }
+  #hud {
+    position: absolute; top: 10px; left: 10px; right: 10px; z-index: 1000;
+    background: rgba(20,22,26,0.9); color: #e8eaed; padding: 10px 14px;
+    border-radius: 8px; font-size: 13px; line-height: 1.5;
+    max-width: 280px; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  #hud b { color: #7cc7ff; }
+  #hud .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .ok { background:#3ddc84; } .bad { background:#e05252; } .warn { background:#ffb020; }
+  #err { color: #ff8080; font-size: 12px; margin-top: 6px; display:none; white-space: pre-wrap; }
+  #gearBtn {
+    position: absolute; top: 10px; right: 10px; z-index: 1000;
+    width: 40px; height: 40px; border-radius: 50%; border: none;
+    background: rgba(20,22,26,0.9); color: #e8eaed; font-size: 18px; cursor: pointer;
+  }
+  #settings {
+    position: absolute; top: 60px; right: 10px; z-index: 1001;
+    background: rgba(20,22,26,0.95); color: #e8eaed; padding: 14px;
+    border-radius: 8px; font-size: 13px; width: 240px; display: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  }
+  #settings label { display:block; margin-top: 8px; }
+  #settings input[type=number] { width: 100%; box-sizing: border-box; padding: 5px; margin-top: 2px;
+    border-radius: 4px; border: 1px solid #444; background: #1c1e22; color: #eee; }
+  #settings .row { display:flex; align-items:center; gap:8px; margin-top:10px; }
+  #settings button { padding: 6px 10px; border-radius: 6px; border: none; background: #3d7fff;
+    color: white; cursor: pointer; font-size: 13px; }
+  #settings small { color: #9aa0a6; display:block; margin-top:8px; line-height:1.4; }
+  .leaflet-popup-content { font-size: 13px; line-height: 1.4; }
+  .leaflet-popup-content b { color: #205081; }
+  @media (max-width: 600px) {
+    #hud, #settings { font-size: 14px; }
+    .leaflet-control-zoom a { width: 40px !important; height: 40px !important; line-height: 40px !important; }
+  }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div><span id="statusdot" class="dot bad"></span><b id="count">0</b> αεροσκάφη</div>
+  <div id="lastupdate">τελ. ανανέωση: —</div>
+  <div id="err"></div>
+</div>
+<button id="gearBtn" title="Ρυθμίσεις">⚙️</button>
+<div id="settings">
+  <label>Γεωγρ. πλάτος κέντρου
+    <input type="number" id="lat" step="0.0001" />
+  </label>
+  <label>Γεωγρ. μήκος κέντρου
+    <input type="number" id="lon" step="0.0001" />
+  </label>
+  <label>Ακτίνα (μοίρες, ~111km/μοίρα)
+    <input type="number" id="radius" step="0.1" min="0.2" max="10" />
+  </label>
+  <div class="row">
+    <input type="checkbox" id="useProxy" />
+    <label for="useProxy" style="margin:0;">Χρήση δημόσιου CORS proxy</label>
+  </div>
+  <div class="row">
+    <button id="saveBtn">Αποθήκευση</button>
+    <button id="closeBtn" style="background:#555;">Κλείσιμο</button>
+  </div>
+  <small>
+    Αν βλέπεις σφάλμα δικτύου/CORS πιο κάτω, ενεργοποίησε το proxy — τα αιτήματα θα
+    περνούν τότε από τρίτη υπηρεσία (allorigins.win), όχι απευθείας στο OpenSky.
+  </small>
+</div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/*
+ * Αυτόνομη έκδοση — τρέχει ΕΝΤΕΛΩΣ μέσα στον browser του κινητού/υπολογιστή.
+ * Δεν χρειάζεται κανένα backend/server: το JavaScript της ίδιας της σελίδας
+ * καλεί απευθείας το δωρεάν OpenSky Network API. Αρκεί να ανοίξεις αυτό το
+ * αρχείο (ή το link του, αν το ανέβασες κάπου) σε browser με σύνδεση internet.
+ *
+ * ΣΗΜΕΙΩΣΗ CORS: το OpenSky API δεν εγγυάται πάντα headers CORS για κλήσεις
+ * απευθείας από browser σε διαφορετικό domain. Αν δεις σφάλμα δικτύου,
+ * ενεργοποίησε το "CORS proxy" από τις ρυθμίσεις (⚙️) — δρομολογεί τα ίδια
+ * αιτήματα μέσα από μια δημόσια, δωρεάν υπηρεσία proxy.
+ */
+const POLL_MS = 12000; // πιο αργό polling: κλήσεις απευθείας από δημόσιο δίκτυο/proxy
+const DEFAULTS = { lat: 40.6401, lon: 22.9444, radius: 2.5, useProxy: false };
+
+let map, markers = {};
+let settings = loadSettings();
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('flightlocal.settings');
+    if (raw) return { ...DEFAULTS, ...JSON.parse(raw) };
+  } catch (e) {}
+  return { ...DEFAULTS };
+}
+function saveSettings() {
+  try { localStorage.setItem('flightlocal.settings', JSON.stringify(settings)); } catch (e) {}
+}
+
+function openSkyUrl() {
+  const { lat, lon, radius } = settings;
+  const params = new URLSearchParams({
+    lamin: lat - radius, lamax: lat + radius,
+    lomin: lon - radius, lomax: lon + radius,
+  });
+  const direct = `https://opensky-network.org/api/states/all?${params.toString()}`;
+  if (!settings.useProxy) return direct;
+  // Δημόσιο, δωρεάν CORS proxy ως εναλλακτική όταν το OpenSky δεν επιστρέφει
+  // headers CORS στο κινητό/browser σου. Τα αιτήματα περνούν από τρίτο server.
+  return `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`;
+}
+
+function planeIconSvg(heading) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"
+      style="transform: rotate(${heading || 0}deg)">
+    <path d="M12 2 L15 11 L22 14 L15 15.5 L16 21 L12 19 L8 21 L9 15.5 L2 14 L9 11 Z"
+      fill="#3ddc84" stroke="#111" stroke-width="0.6"/>
+  </svg>`;
+}
+function fmtAlt(m) { return (m === null || m === undefined) ? '—' : Math.round(m * 3.28084).toLocaleString() + ' ft'; }
+function fmtSpeed(ms) { return (ms === null || ms === undefined) ? '—' : Math.round(ms * 1.94384) + ' kt'; }
+function fmtHeading(h) { return (h === null || h === undefined) ? '—' : Math.round(h) + '°'; }
+
+function initMap() {
+  map = L.map('map').setView([settings.lat, settings.lon], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  L.circleMarker([settings.lat, settings.lon], { radius: 4, color: '#7cc7ff' })
+    .addTo(map).bindPopup('Κέντρο παρακολούθησης');
+}
+
+async function poll() {
+  const dot = document.getElementById('statusdot');
+  const errBox = document.getElementById('err');
+  try {
+    const resp = await fetch(openSkyUrl(), { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    dot.className = 'dot ok';
+    errBox.style.display = 'none';
+    const states = data.states || [];
+    document.getElementById('count').textContent = states.length;
+    document.getElementById('lastupdate').textContent =
+      'τελ. ανανέωση: ' + new Date().toLocaleTimeString();
+    render(states);
+  } catch (e) {
+    dot.className = 'dot bad';
+    errBox.style.display = 'block';
+    errBox.textContent = (settings.useProxy ? '⚠️ ' : '⚠️ (πιθανό CORS — δοκίμασε το proxy στις ρυθμίσεις) ')
+      + e.message;
+    console.error(e);
+  }
+}
+
+function render(states) {
+  const seen = new Set();
+  for (const s of states) {
+    const [icao24, callsign, , , , lon, lat, , onGround, velocity, heading] = s;
+    if (lat === null || lon === null) continue;
+    seen.add(icao24);
+    const icon = L.divIcon({
+      className: 'plane-icon', html: planeIconSvg(heading),
+      iconSize: [26, 26], iconAnchor: [13, 13],
+    });
+    const label = (callsign || '').trim() || icao24;
+    const popup = `<b>${label}</b><br/>Ταχύτητα: ${fmtSpeed(velocity)}<br/>Πορεία: ${fmtHeading(heading)}`;
+    if (markers[icao24]) {
+      markers[icao24].setLatLng([lat, lon]);
+      markers[icao24].setIcon(icon);
+      markers[icao24].getPopup().setContent(popup);
+    } else {
+      markers[icao24] = L.marker([lat, lon], { icon }).addTo(map).bindPopup(popup);
+    }
+  }
+  for (const id of Object.keys(markers)) {
+    if (!seen.has(id)) { map.removeLayer(markers[id]); delete markers[id]; }
+  }
+}
+
+function initSettingsUI() {
+  const gearBtn = document.getElementById('gearBtn');
+  const panel = document.getElementById('settings');
+  const latEl = document.getElementById('lat');
+  const lonEl = document.getElementById('lon');
+  const radEl = document.getElementById('radius');
+  const proxyEl = document.getElementById('useProxy');
+
+  latEl.value = settings.lat; lonEl.value = settings.lon;
+  radEl.value = settings.radius; proxyEl.checked = settings.useProxy;
+
+  gearBtn.onclick = () => { panel.style.display = panel.style.display === 'block' ? 'none' : 'block'; };
+  document.getElementById('closeBtn').onclick = () => { panel.style.display = 'none'; };
+  document.getElementById('saveBtn').onclick = () => {
+    settings.lat = parseFloat(latEl.value) || DEFAULTS.lat;
+    settings.lon = parseFloat(lonEl.value) || DEFAULTS.lon;
+    settings.radius = parseFloat(radEl.value) || DEFAULTS.radius;
+    settings.useProxy = proxyEl.checked;
+    saveSettings();
+    panel.style.display = 'none';
+    map.setView([settings.lat, settings.lon], map.getZoom());
+    poll();
+  };
+}
+
+initMap();
+initSettingsUI();
+poll();
+setInterval(poll, POLL_MS);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
