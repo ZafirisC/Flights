@@ -1,4 +1,4 @@
-// Leaflet map setup. Aircraft layers come in Phase 5.
+// Leaflet map setup.
 /* global L */
 export const DEFAULT_VIEW = { lat: 40.64, lon: 22.94, zoom: 8 }; // Thessaloniki
 

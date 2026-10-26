@@ -29,6 +29,31 @@ export async function getJSON(url, { timeout = 10000 } = {}) {
   }
 }
 
+// Live aircraft around a point (adsb.lol v2), normalised to:
+// { hex, callsign, lat, lon, alt (ft, null if unknown), onGround, gs (kt), track (deg), vrate (ft/min), squawk, seen (s) }
+export const MAX_RADIUS_NM = 250; // adsb.lol limit
+
+export async function fetchAircraft(lat, lon, radiusNm) {
+  const r = Math.max(1, Math.min(MAX_RADIUS_NM, Math.ceil(radiusNm)));
+  const url = `${SOURCES.adsbLol}/v2/point/${lat.toFixed(2)}/${lon.toFixed(2)}/${r}`;
+  const data = await getJSON(url);
+  return (data.ac || [])
+    .filter((a) => a.hex && typeof a.lat === 'number' && typeof a.lon === 'number')
+    .map((a) => ({
+      hex: a.hex,
+      callsign: (a.flight || '').trim() || null,
+      lat: a.lat,
+      lon: a.lon,
+      alt: typeof a.alt_baro === 'number' ? a.alt_baro : null,
+      onGround: a.alt_baro === 'ground',
+      gs: a.gs ?? null,
+      track: a.track ?? a.true_heading ?? null,
+      vrate: a.baro_rate ?? a.geom_rate ?? null,
+      squawk: a.squawk ?? null,
+      seen: a.seen ?? null,
+    }));
+}
+
 // Diagnostic request for tools/api-check.html: never throws, reports what the browser saw.
 // If the normal request fails, a no-cors request tells "host reachable but CORS blocked"
 // apart from "host unreachable".

@@ -62,7 +62,11 @@ html, body {
   z-index: 1000;
   left: 50%;
   transform: translateX(-50%);
-  bottom: calc(var(--safe-bottom) + 36px);
+  top: calc(var(--safe-top) + 64px); /* below the search bar */
+  width: max-content;
+  max-width: calc(100% - 20px);
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   padding: 6px 12px;
   border-radius: 8px;
   background: var(--surface);
@@ -111,3 +115,23 @@ html, body {
     padding: 16px;
   }
 }
+
+/* Aircraft markers */
+.ac-icon { background: none; border: none; }
+.ac-icon svg { display: block; filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.8)); }
+
+/* Altitude legend (sits above the disclaimer) */
+.leaflet-bottom.leaflet-left { bottom: calc(var(--safe-bottom) + 22px); }
+@media (max-width: 767px) {
+  .leaflet-bottom.leaflet-left { bottom: calc(var(--safe-bottom) + 36px); } /* disclaimer wraps to 2 lines */
+}
+.alt-legend {
+  width: 170px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fg);
+  font-size: 10px;
+}
+.alt-legend-bar { height: 6px; border-radius: 3px; }
+.alt-legend-labels { display: flex; justify-content: space-between; margin-top: 2px; }

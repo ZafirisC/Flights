@@ -9,7 +9,7 @@
 | 2 | API check page (`tools/api-check.html`): CORS + response for every source in SPEC §2 | Sonnet | Results table below filled in from desktop Chrome and iPhone Safari | ☑ |
 | 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☑ |
 | 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☑ |
-| 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☐ |
+| 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ◐ built, awaiting check on Pages |
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☐ |
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☐ |
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☐ |
@@ -68,6 +68,12 @@
   Result 2026-10-26: 6096 airports, 1.41 MB (~0.3 MB gzipped). Fields: icao, iata, name, city, country, lat, lon,
   elev (ft), type, rwy[id, len, wid, surf, hdg]. `icao` falls back to gps_code/ident when it is 4 letters.
   Regenerate: `python3 scripts/build_airports.py`.
+
+- Phase 5a: `js/traffic.js` (viewport circle = centre → farthest corner, capped at 250 nm; poll 12 s; refetch
+  400 ms after move; stops while hidden, refetches on return; stale responses dropped), `js/aircraft-layer.js`
+  (markers updated in place by hex), `js/altitude.js` (hsl scale orange → purple, 0–40 000 ft; ground grey; legend),
+  `fetchAircraft()` in `js/api.js` normalises adsb.lol. Status messages moved under the search bar.
+  Tested in the sandbox with mocked data (50 markers, pan/zoom, 250 nm cap message, no console errors).
 
 ## Known issues
 - airplanes.live answers 403 to the Worker, so there is no fallback if adsb.lol is down. Route kept in the Worker in case it changes.
