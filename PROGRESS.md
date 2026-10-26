@@ -21,15 +21,15 @@
 
 | Source | Desktop Chrome | iPhone Safari | Notes |
 |---|---|---|---|
-| adsb.lol | | | |
-| airplanes.live | | | |
-| OpenSky | | | |
-| adsbdb callsign | | | |
-| adsbdb aircraft | | | |
-| Planespotters | | | |
-| aviationweather METAR | | | |
-| aviationweather TAF | | | |
-| Open-Meteo | | | |
+| adsb.lol | | ❌ CORS blocked (host reachable) |  |
+| airplanes.live | | ❌ CORS blocked (host reachable) |  |
+| OpenSky | | ❌ CORS blocked (host reachable) |  |
+| adsbdb callsign | | ✅ 200, ~450 ms | `{response: object}`; tested with fallback AEE123 |
+| adsbdb aircraft | | ✅ CORS ok (404 for fallback hex) | 404 = unknown hex 4690de, not a failure; `{response: string}` on 404 |
+| Planespotters | | ✅ 200, ~460 ms | `{photos: []}` for fallback hex |
+| aviationweather METAR | | ❌ CORS blocked (host reachable) |  |
+| aviationweather TAF | | ❌ CORS blocked (host reachable) |  |
+| Open-Meteo | | ✅ 200, ~350 ms | `{latitude, longitude, hourly_units, hourly, …}` |
 
 ## Decisions log
 - UI in English.
@@ -45,6 +45,8 @@
   On failure a `no-cors` retry separates "CORS blocked" from "unreachable". Lookups (adsbdb, Planespotters)
   use a real callsign/hex from the first live result, else fallback AEE123 / 4690de. Area: Thessaloniki, 100 nm.
   Only CORS-exposed headers are readable, so rate limits may show "none visible"; check provider docs.
+- Phase 2 (iPhone, 2026-10-26): no rate-limit headers visible on any source. "CORS blocked (host reachable)" can also
+  be an error response without CORS headers (e.g. 429); either way the browser cannot read it.
 
 ## Known issues
 - (none yet)
