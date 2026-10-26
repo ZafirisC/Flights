@@ -6,8 +6,8 @@
 |---|---|---|---|---|
 | 0 | Accounts (GitHub, Cloudflare), empty repo, GitHub Pages on — **by Zaf** | — | Repo exists, Pages URL loads | ☐ |
 | 1 | Skeleton: file structure, `index.html`, empty modules, manifest | Opus | Empty app loads on the Pages URL on PC and iPhone | ☑ |
-| 2 | API check page (`tools/api-check.html`): CORS + response for every source in SPEC §2 | Sonnet | Results table below filled in from desktop Chrome and iPhone Safari | ◐ page built, awaiting runs on Chrome + iPhone |
-| 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☐ |
+| 2 | API check page (`tools/api-check.html`): CORS + response for every source in SPEC §2 | Sonnet | Results table below filled in from desktop Chrome and iPhone Safari | ☑ |
+| 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☐ needed (see Phase 2 decision) |
 | 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☐ |
 | 5a | Map: viewport fetching, altitude colours, pause when hidden | Sonnet | Aircraft appear wherever the map is moved; no console errors | ☐ |
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☐ |
@@ -21,15 +21,15 @@
 
 | Source | Desktop Chrome | iPhone Safari | Notes |
 |---|---|---|---|
-| adsb.lol | | ❌ CORS blocked (host reachable) |  |
-| airplanes.live | | ❌ CORS blocked (host reachable) |  |
-| OpenSky | | ❌ CORS blocked (host reachable) |  |
-| adsbdb callsign | | ✅ 200, ~450 ms | `{response: object}`; tested with fallback AEE123 |
-| adsbdb aircraft | | ✅ CORS ok (404 for fallback hex) | 404 = unknown hex 4690de, not a failure; `{response: string}` on 404 |
-| Planespotters | | ✅ 200, ~460 ms | `{photos: []}` for fallback hex |
-| aviationweather METAR | | ❌ CORS blocked (host reachable) |  |
-| aviationweather TAF | | ❌ CORS blocked (host reachable) |  |
-| Open-Meteo | | ✅ 200, ~350 ms | `{latitude, longitude, hourly_units, hourly, …}` |
+| adsb.lol | ❌ CORS blocked | ❌ CORS blocked (host reachable) |  |
+| airplanes.live | ❌ CORS blocked | ❌ CORS blocked (host reachable) |  |
+| OpenSky | ❌ Timeout (10 s) | ❌ CORS blocked (host reachable) |  |
+| adsbdb callsign | ✅ 200, ~385 ms | ✅ 200, ~450 ms | `{response: object}`; tested with fallback AEE123 |
+| adsbdb aircraft | ✅ CORS ok (404 for fallback hex) | ✅ CORS ok (404 for fallback hex) | 404 = unknown hex 4690de, not a failure; `{response: string}` on 404 |
+| Planespotters | ✅ 200, ~360 ms | ✅ 200, ~460 ms | `{photos: []}` for fallback hex |
+| aviationweather METAR | ❌ CORS blocked | ❌ CORS blocked (host reachable) |  |
+| aviationweather TAF | ❌ CORS blocked | ❌ CORS blocked (host reachable) |  |
+| Open-Meteo | ✅ 200, ~350 ms | ✅ 200, ~350 ms | `{latitude, longitude, hourly_units, hourly, …}` |
 
 ## Decisions log
 - UI in English.
@@ -47,6 +47,11 @@
   Only CORS-exposed headers are readable, so rate limits may show "none visible"; check provider docs.
 - Phase 2 (iPhone, 2026-10-26): no rate-limit headers visible on any source. "CORS blocked (host reachable)" can also
   be an error response without CORS headers (e.g. 429); either way the browser cannot read it.
+
+- Phase 2 result: **Worker needed** for live positions (adsb.lol, airplanes.live, OpenSky) and METAR/TAF
+  (aviationweather). Direct from browser: adsbdb, Planespotters, Open-Meteo. Primary live source: adsb.lol
+  via Worker, airplanes.live as fallback; OpenSky dropped (CORS blocked on iPhone, timeout on desktop).
+- Phase 2 desktop run was detected as "Other browser" (not Chrome). CORS is the same in all browsers, so accepted.
 
 ## Known issues
 - (none yet)
