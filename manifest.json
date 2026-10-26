@@ -1,0 +1,10 @@
+{
+  "name": "Flights",
+  "short_name": "Flights",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "icons": []
+}

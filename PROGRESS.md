@@ -5,7 +5,7 @@
 | # | Phase | Model | Done when | Status |
 |---|---|---|---|---|
 | 0 | Accounts (GitHub, Cloudflare), empty repo, GitHub Pages on — **by Zaf** | — | Repo exists, Pages URL loads | ☐ |
-| 1 | Skeleton: file structure, `index.html`, empty modules, manifest | Opus | Empty app loads on the Pages URL on PC and iPhone | ☐ |
+| 1 | Skeleton: file structure, `index.html`, empty modules, manifest | Opus | Empty app loads on the Pages URL on PC and iPhone | ◐ built, awaiting check on Pages (PC + iPhone) |
 | 2 | API check page (`tools/api-check.html`): CORS + response for every source in SPEC §2 | Sonnet | Results table below filled in from desktop Chrome and iPhone Safari | ☐ |
 | 3 | Cloudflare Worker — **only if Phase 2 shows a blocked source** | Opus | Each needed route answers from the browser | ☐ |
 | 4 | `scripts/build_airports.py` → `data/airports.json` | Sonnet | File is a few MB at most; ICAO/IATA/name/city/elevation/runways | ☐ |
@@ -36,6 +36,11 @@
 - Departures/arrivals derived from live data (no schedules) for v1.
 - App runs fully on the device; Cloudflare Worker only for sources that block browser access.
 - v1 = core features + Group A (see SPEC §3).
+- Phase 1: Leaflet 1.9.4 from unpkg with SRI. Leaflet.markercluster added in Phase 5b.
+- Phase 1 file layout: `index.html`, `css/style.css`, `manifest.json`, `.nojekyll`, `js/` = `main.js` (entry),
+  `api.js` (all fetches, base URL per source), `map.js`, `search.js`, `aircraft-panel.js`, `airport-panel.js`,
+  `storage.js` (localStorage in try/catch), `status.js` (status messages).
+- Manifest has no icons yet (Phase 9). No service worker yet (Phase 9).
 
 ## Known issues
-- (none yet)
+- Phase 1 could not be loaded in the dev sandbox (CDN blocked there); Leaflet SRI hashes are the official ones but unverified until the Pages check.
