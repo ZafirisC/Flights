@@ -58,7 +58,7 @@
   Edge cache 5 s for positions, 5 min for METAR/TAF. `js/api.js` switches these sources with `WORKER_URL`;
   `tools/api-check.html?worker=<url>` tests a Worker before that.
 
-- Phase 3 check (desktop, 2026-10-26, via Worker `https://flights-proxy.zkriaris.workers.dev`): adsb.lol ✅
+- Phase 3 check (desktop + iPhone Safari, 2026-10-26, same results on both; via Worker `https://flights-proxy.zkriaris.workers.dev`): adsb.lol ✅
   (29 aircraft), METAR ✅, TAF ✅. airplanes.live → HTTP 403 from upstream (it refuses requests from the Worker).
   `WORKER_URL` set in `js/api.js`. v1 uses adsb.lol only; no live-position fallback for now.
 
