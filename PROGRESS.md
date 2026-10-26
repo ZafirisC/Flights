@@ -13,7 +13,7 @@
 | 5b | Clustering, emergency highlight, dark map, share link | Sonnet | All four work on iPhone | ☑ |
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☑ |
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☑ |
-| 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ◐ built, awaiting check on Pages |
+| 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☑ |
 | 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☐ |
 | 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ☐ |
 
@@ -107,7 +107,7 @@
   gust/variable/MPS, visibility m/SM incl. fractions, CAVOK, weather, clouds, temp/dew, Q/A QNH) and gives the
   FAA flight category; TAF shown raw, one change group per line. `js/panel.js` lets the aircraft and airport
   panels share `#panel`. `js/geo.js`: distance/bearing. Check page: `tools/metar-check.html` compares our
-  decode with aviationweather.gov's parsed fields.
+  decode with aviationweather.gov's parsed fields. Verified on Pages (real METARs + LGTS lists).
 
 ## Known issues
 - Phone: the bottom sheet covers the lower half of the map, so the selected airport/aircraft can sit behind it (Phase 9).
