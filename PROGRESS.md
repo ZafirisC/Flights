@@ -14,7 +14,7 @@
 | 6 | Search: flights and airports | Sonnet | `SKG`, `LGTS`, `Thessaloniki` and a live callsign are found | ☑ |
 | 7 | Aircraft panel + destination weather | Sonnet | All fields shown or "Not available" | ☑ |
 | 8 | Airport panel: METAR/TAF decode, derived departures/arrivals | Opus | 5 real METARs decoded correctly; sensible lists for LGTS | ☑ |
-| 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ◐ built, awaiting check on Pages |
+| 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☑ |
 | 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ☐ |
 
 ## API check results (Phase 2)
@@ -114,6 +114,7 @@
   revalidation (fixes stale JS after deploys), offline fallback from cache; unpkg libraries cache-first; APIs,
   tiles and the Worker untouched. Phone bottom sheet: handle to drag between 45% and 88% height, tap toggles,
   drag down closes. `revealOnMap()` pans so the selected aircraft/airport is not behind the panel.
+  Verified on Pages: iPhone home screen app and desktop.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
