@@ -336,3 +336,13 @@ html, body {
 .layers-menu label { display: flex; align-items: center; gap: 8px; min-height: 36px; white-space: nowrap; }
 #panel .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
 #panel a.panel-btn { display: inline-flex; align-items: center; text-decoration: none; }
+
+/* Scheduled vs actual times (aircraft panel) */
+#panel table.times { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 14px; }
+#panel table.times th { color: var(--muted); font-weight: 400; font-size: 12px; text-align: left; }
+#panel table.times td, #panel table.times th { padding: 3px 6px 3px 0; }
+#panel table.times .kind { color: var(--muted); font-size: 11px; }
+#panel .delay { font-weight: 600; white-space: nowrap; }
+#panel .delay.ok { color: #2e7d32; }
+#panel .delay.warn { color: #ef6c00; }
+#panel .delay.bad { color: #d32f2f; }

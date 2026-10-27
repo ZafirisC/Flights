@@ -1,6 +1,7 @@
 // Aircraft panel: flight, aircraft (with photo), live data, destination weather, and a trail on the map.
 /* global L */
-import { fetchRoute, fetchAircraftInfo, fetchPhoto, fetchMetar, fetchForecast } from './api.js';
+import { fetchRoute, fetchAircraftInfo, fetchPhoto, fetchMetar, fetchForecast, fetchFlightTimes } from './api.js';
+import { pickFlight, flightTimes, hhmm, delayText, delayClass } from './flight-times.js';
 import { emergencyOf } from './aircraft-layer.js';
 import { weatherText } from './forecast.js';
 import { decodeMetar, metarSummary } from './metar.js';
@@ -65,7 +66,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
       </div>
       <div class="lost" data-sec="lost" hidden>Signal lost — showing the last known position</div>
       ${ac.callsign ? `<button type="button" class="panel-btn" data-share="${esc(ac.callsign)}">Share link</button>` : ''}
-      <h3>Flight</h3><div data-sec="flight">Loading…</div>
+      <h3>Flight</h3><div data-sec="flight">Loading…</div><div data-sec="times"></div>
       <h3>Aircraft</h3><div data-sec="aircraft">Loading…</div>
       <h3>Live</h3><div data-sec="live">${liveHtml(ac, ac.seen)}</div>
       <h3>Destination weather</h3><div data-sec="weather">Loading…</div>`;
@@ -89,6 +90,22 @@ export function initAircraftPanel(map, { onClose } = {}) {
       liveAtcLink(route?.destination?.icao, `ATC ${route?.destination?.iata || route?.destination?.icao || ''}`)].join('');
     if (atc && t === token) sec('flight')?.insertAdjacentHTML('beforeend', `<div class="btn-row">${atc}</div>`);
     loadWeather(t, route?.destination);
+  }
+
+  // Scheduled vs actual times: only when a panel opens, never for every aircraft. Any failure → section stays empty.
+  async function loadTimes(t, ac) {
+    if (!ac.callsign) return;
+    let ft = null;
+    try { ft = flightTimes(pickFlight((await fetchFlightTimes(ac.callsign))?.flights)); } catch { return; }
+    if (!ft) return;
+    const line = (label, e) => e && `<tr><td>${label}</td><td>${esc(hhmm(e.scheduled) || '–')}</td>
+      <td>${e.time ? `${esc(hhmm(e.time))} <span class="kind">${e.kind === 'Actual' ? 'act' : 'est'}</span>` : '–'}</td>
+      <td class="delay ${e.delayMin !== null ? delayClass(e.delayMin) : ''}">${esc(delayText(e.delayMin))}</td></tr>`;
+    fill(t, 'times', `<table class="times">
+      <tr><th></th><th>Scheduled</th><th>Actual / est.</th><th></th></tr>
+      ${line('Departure', ft.dep) || ''}${line('Arrival', ft.arr) || ''}</table>
+      <div class="note">${ft.number ? `${esc(ft.number)} · ` : ''}${ft.status ? `${esc(ft.status)} · ` : ''}Local airport times ·
+        <a href="https://aerodatabox.com/" target="_blank" rel="noopener">AeroDataBox</a></div>`);
   }
 
   async function loadAircraft(t, ac) {
@@ -144,6 +161,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     track.start(ac);
     ticker = setInterval(tick, 1000);
     loadFlight(t, ac);
+    loadTimes(t, ac);
     loadAircraft(t, ac);
   }
 
