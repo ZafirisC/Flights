@@ -17,6 +17,28 @@
 | 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☑ |
 | 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ◐ code review + fixes done, awaiting user test round |
 
+## v1.1 phases (see SPEC §8, PLAN_v1.1.md)
+
+One phase per session; `/clear` between phases. Test on PC and iPhone, commit, update this file at the end of each.
+
+### v1.1 Phase 1 — Quick fixes (Sonnet; Haiku for the refresh button)
+- [ ] Persistent aircraft selection ("Signal lost" instead of closing)
+- [ ] Refresh button (tap = refetch + reset map, long-press = reload) + "Updated Xs ago"
+- [ ] Decoded METAR in aircraft panel, raw collapsible
+- [ ] Flight number (IATA/ICAO) display + search
+
+### v1.1 Phase 2 — Map and airports (Sonnet; Haiku for airport data script and Live ATC)
+- [ ] Airports on the map, selectable
+- [ ] Airport local time (time zone in airports.json)
+- [ ] Full flight track + dashed line to destination
+- [ ] Weather and day/night layers
+- [ ] Live ATC links
+
+### v1.1 Phase 3 — Scheduled vs actual times (Opus for source comparison/Worker design, Sonnet to implement)
+- [ ] Pick free-tier source
+- [ ] Worker route with key + 15 min cache
+- [ ] Panel: scheduled/actual, delay colour, graceful failure
+
 ## API check results (Phase 2)
 
 | Source | Desktop Chrome | iPhone Safari | Notes |

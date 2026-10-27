@@ -99,4 +99,34 @@ Starting heuristic (refine in Phase 8):
 Group B: flight-category dots on airport markers, runway-in-use and wind components, ETA-based
 destination weather, filters, favourites, "what's overhead", unit/language toggles.
 Group C: notifications, playback, military filter, own RTL-SDR receiver as a source.
-Real schedules (AeroDataBox / AviationStack via Worker) — only if decided later.
+Real schedules: moved into v1.1 Phase 3 (see §8).
+Backlog: in-app ATC playback (only with LiveATC permission); AI boarding-time prediction (declined).
+
+## 8. v1.1 (three phases; source: PLAN_v1.1.md)
+
+Architecture rules from v1 still apply: everything runs on the device, no own backend, GitHub Pages,
+Cloudflare Worker only for CORS or to hide an API key. UI stays in English.
+
+### Phase 1 — Quick fixes (front-end only, existing data)
+1. **Persistent aircraft selection.** Selected ICAO24 kept in state; highlight re-applied on every poll;
+   deselect only when the panel is closed. If the aircraft leaves the data, the panel shows "Signal lost".
+2. **Refresh button.** Tap = refetch data and reset the map; long-press = full page reload. Next to it an
+   "Updated Xs ago" indicator, red when stale.
+3. **Decoded METAR in the aircraft panel.** Readable text (wind, visibility, clouds, temperature, QNH);
+   raw METAR as a collapsible line.
+4. **Flight number + search.** Static ICAO↔IATA airline mapping; panel shows both (OA98 / OAL98); search
+   accepts either, ignoring spaces and case. Airborne aircraft only.
+
+### Phase 2 — Map and airports (no API keys)
+1. Airports on the map (large at all zooms, medium when zoomed in), tap opens the airport panel.
+2. Airport local time from a time zone per airport (derived by the build script), via Intl.
+3. Full flight track of the selected aircraft (takeoff → current position, dashed great circle to destination).
+   History from a free source; check which one works from the browser or needs the Worker.
+4. Layer toggles, off by default: day/night (computed locally) and precipitation radar (free keyless provider).
+5. **Live ATC (link only)** to the LiveATC.net page for the airport ICAO; flight panel has departure and
+   destination buttons. No re-streaming.
+
+### Phase 3 — Scheduled vs actual times
+Free tier only, no credit card. API key only in the Cloudflare Worker. Called only when a flight panel is
+opened; cached ~15 min per flight in the Worker. Shows scheduled vs actual/estimated departure and arrival,
+delay in minutes (green ≤ 15, orange, red). On failure or exhausted quota the panel simply hides the times.
