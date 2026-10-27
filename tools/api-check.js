@@ -16,6 +16,8 @@ const browser = /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone Safari'
 const sample = { ...FALLBACK, fromLive: false };
 
 const CHECKS = [
+  { name: 'adsb.fi (via Worker)', live: true, url: () => `${SOURCES.adsbFi}/v3/lat/${LAT}/lon/${LON}/dist/${RADIUS_NM}` },
+  { name: 'adsb.fi (direct)', live: true, url: () => `https://opendata.adsb.fi/api/v3/lat/${LAT}/lon/${LON}/dist/${RADIUS_NM}` },
   { name: 'adsb.lol', live: true, url: () => `${SOURCES.adsbLol}/v2/point/${LAT}/${LON}/${RADIUS_NM}` },
   { name: 'airplanes.live', live: true, url: () => `${SOURCES.airplanesLive}/v2/point/${LAT}/${LON}/${RADIUS_NM}` },
   { name: 'OpenSky', live: true,
@@ -49,7 +51,7 @@ function shape(body) {
 function count(name, body) {
   if (!body) return null;
   if (name === 'OpenSky') return body.states?.length ?? 0;
-  return body.ac?.length ?? null;
+  return (body.ac || body.aircraft)?.length ?? null;
 }
 
 // Take a real callsign + hex from a live result (adsb.lol / airplanes.live: ac[], OpenSky: states[]).
@@ -60,7 +62,7 @@ function pickSample(name, body) {
     const s = (body.states || []).find((st) => st[1]?.trim());
     if (s) found = { callsign: s[1].trim(), hex: s[0] };
   } else {
-    const a = (body.ac || []).find((x) => x.flight?.trim() && x.hex);
+    const a = (body.ac || body.aircraft || []).find((x) => x.flight?.trim() && x.hex);
     if (a) found = { callsign: a.flight.trim(), hex: a.hex };
   }
   if (found) Object.assign(sample, found, { fromLive: true });

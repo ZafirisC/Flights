@@ -173,6 +173,16 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   random aircraft can also just mean no trace yet. OpenSky `/tracks` not used (CORS blocked / timeout in Phase 2, needs an
   account). RainViewer availability and limits are also unverified here.
 
+- Live source switched to **adsb.fi** (2026-10-27): adsb.lol now answers 429 because of a per-IP quota
+  (`x-ratelimit-limit: 4, 4;w=1, 60;w=60, 500;w=86400`, i.e. 500 requests/day), which the shared Cloudflare Worker IP
+  exhausts; one phone polling every 12 s alone would use it up in under 2 hours. adsb.fi open data: no key, 1 req/s,
+  no daily cap, same readsb/ADSBx v2 format; terms: personal non-commercial, cite adsb.fi with a link (footer).
+  New Worker route `/adsbfi` (`/v3/lat/../lon/../dist/..`, `/v2/callsign/`, `/v2/registration/`, `/v2/hex/`).
+  `js/api.js` `liveQuery()`: adsb.fi first, adsb.lol as fallback; a source that answers 429 is skipped for 5 min.
+  The selected aircraft outside the view is now looked up by hex. `tools/api-check.html` has rows for adsb.fi via the
+  Worker and direct (if direct passes CORS, it could later skip the Worker and use the phone's own IP).
+  Risk: the Worker's IP is shared with other Cloudflare users, so adsb.fi's 1 req/s limit could still be hit by others.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

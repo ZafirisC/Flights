@@ -126,6 +126,7 @@ html, body {
   color: var(--muted);
   font-size: 11px;
 }
+#disclaimer a { color: inherit; }
 
 /* Phone: panels as bottom sheet. Desktop: right side panel. */
 #panel {

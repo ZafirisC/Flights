@@ -4,6 +4,7 @@ CORS proxy for the sources Phase 2 found blocked. Only these routes are forwarde
 
 | Route | Upstream | Edge cache |
 |---|---|---|
+| `/adsbfi/v3/lat/{lat}/lon/{lon}/dist/{nm}`, `/adsbfi/v2/callsign/{cs}`, `/adsbfi/v2/registration/{reg}`, `/adsbfi/v2/hex/{hex}` | `https://opendata.adsb.fi/api` | 5 s |
 | `/adsblol/v2/point/{lat}/{lon}/{radius_nm}`, `/adsblol/v2/callsign/{cs}`, `/adsblol/v2/reg/{reg}` | `https://api.adsb.lol` | 5 s |
 | `/airplaneslive/v2/point/{lat}/{lon}/{radius_nm}` | `https://api.airplanes.live` | 5 s |
 | `/adsbtrace/data/traces/{xx}/trace_full_{hex}.json` (or `trace_recent_`) | `https://adsb.lol` | 30 s |
