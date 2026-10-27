@@ -24,8 +24,12 @@
   <div id="map" aria-label="Map"></div>
 
   <header id="topbar">
-    <input id="search" type="search" placeholder="Search flight or airport"
-           autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Search" />
+    <div id="searchrow">
+      <input id="search" type="search" placeholder="Search flight or airport"
+             autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Search" />
+      <button id="refresh" type="button" aria-label="Refresh data (hold to reload the page)">↻</button>
+    </div>
+    <div id="updated" role="status">Loading…</div>
     <ul id="suggestions" hidden></ul>
     <div id="alerts" hidden></div>
     <div id="status" hidden role="status"></div>
@@ -37,7 +41,7 @@
   </aside>
 
   <footer id="disclaimer">
-    Data from community ADS-B networks. Coverage has gaps. Not for operational use.
+    Data from <a href="https://adsb.fi/" target="_blank" rel="noopener">adsb.fi</a> and community ADS-B networks. Coverage has gaps. Not for operational use.
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

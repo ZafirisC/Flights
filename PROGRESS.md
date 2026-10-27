@@ -17,6 +17,28 @@
 | 9 | Responsive polish + PWA (icon, Add to Home Screen) | Sonnet | Works from iPhone home screen and on desktop | ☑ |
 | 10 | Test round and fixes | Haiku/Sonnet | No open bugs below | ◐ code review + fixes done, awaiting user test round |
 
+## v1.1 phases (see SPEC §8, PLAN_v1.1.md)
+
+One phase per session; `/clear` between phases. Test on PC and iPhone, commit, update this file at the end of each.
+
+### v1.1 Phase 1 — Quick fixes (Sonnet; Haiku for the refresh button) — code done, awaiting PC + iPhone test
+- [x] Persistent aircraft selection ("Signal lost" instead of closing)
+- [x] Refresh button (tap = refetch + reset map, long-press = reload) + "Updated Xs ago"
+- [x] Decoded METAR in aircraft panel, raw collapsible
+- [x] Flight number (IATA/ICAO) display + search
+
+### v1.1 Phase 2 — Map and airports (Sonnet; Haiku for airport data script and Live ATC) — code done, awaiting Worker redeploy + PC/iPhone test
+- [x] Airports on the map, selectable
+- [x] Airport local time (time zone in airports.json)
+- [x] Full flight track + dashed line to destination
+- [x] Weather and day/night layers
+- [x] Live ATC links
+
+### v1.1 Phase 3 — Scheduled vs actual times (Opus for source comparison/Worker design, Sonnet to implement)
+- [ ] Pick free-tier source
+- [ ] Worker route with key + 15 min cache
+- [ ] Panel: scheduled/actual, delay colour, graceful failure
+
 ## API check results (Phase 2)
 
 | Source | Desktop Chrome | iPhone Safari | Notes |
@@ -122,6 +144,44 @@
   Open-Meteo attribution added (CC BY 4.0); Escape in the search box no longer closes the open panel.
   Checked OK — source failures (502, network error) keep the last aircraft and show a retrying message, then
   clear on recovery; adsbdb/Planespotters failures show "Not available"; airport list failure shows a message.
+
+- v1.1 Phase 1: selected aircraft is kept by the layer even when a fetch no longer contains it (flagged `missing`;
+  removed on deselect). `traffic.js` then looks it up directly by callsign/registration (`fetchTrackedAircraft`) so the
+  panel keeps updating after the user pans away. No data for 45 s → red "Signal lost" banner in the panel (last known
+  position stays); it clears if the aircraft returns. Panel still closes with ×, Esc or a tap on the map (unchanged).
+  Refresh button + "Updated Xs ago" in `js/refresh.js` (red after 36 s = 3 missed polls): tap = `layer.reset()` +
+  `invalidateSize()` + refetch, 700 ms long-press = `location.reload()`. Aircraft panel METAR uses the existing, already
+  verified `decodeMetar()` plus new `metarSummary()` (same source as v1: aviationweather.gov JSON `rawOb` via the Worker),
+  raw METAR in a `<details>`. Flight numbers: `flightNumbers()` in `js/airlines.js` (reverse of the existing IATA→ICAO
+  table, kept as a JS module rather than JSON because all fetches must go through `api.js`); panel title shows
+  "OA98 / OAL98"; search matches IATA or ICAO, any case, spaces ignored. Tested with Playwright and mocked sources
+  (selection survives data loss, banner, search, METAR text); not yet on a real iPhone.
+
+- v1.1 Phase 2: `scripts/build_airports.py` now adds `tz` (IANA) to every airport using the offline `timezonefinder`
+  package (`pip install timezonefinder`); `data/airports.json` regenerated (6096 airports, 1.54 MB). `js/airport-layer.js`:
+  canvas dots for large airports (all zooms) and medium ones (zoom ≥ 8) that have an IATA code; tap opens the airport panel.
+  `js/localtime.js` → "Local 14:32 (UTC+2)" in the airport panel, refreshed every 30 s. `js/layers.js`: "Layers" menu
+  (bottom right), off by default: RainViewer radar (newest frame, refreshed every 10 min, native zoom 7) and a day/night
+  overlay computed locally (`sunPosition`, `nightPolygon`; no library). `js/atc.js`: LiveATC.net links only
+  (`https://www.liveatc.net/search/?icao=LGTS`) in the airport panel and as ATC buttons for origin and destination in the
+  aircraft panel. `js/track.js` replaces the old trail: history since take-off (solid) + dashed great circle to the destination.
+- **Track source — NOT verified from the build sandbox** (it can only reach GitHub/PyPI): history is read from adsb.lol's
+  tar1090 traces, `data/traces/{xx}/trace_full_{hex}.json`, then `trace_recent_`, through a new Worker route `/adsbtrace`
+  (**the Worker must be redeployed with the new `worker/worker.js`**). The current flight is cut at the last take-off or
+  45-min gap. If the route 404s or the format differs, the track simply starts from when the panel was opened (as in v1).
+  Check with `tools/api-check.html?worker=<url>` (new rows "adsb.lol trace" and "RainViewer"); a 404 for the trace on a
+  random aircraft can also just mean no trace yet. OpenSky `/tracks` not used (CORS blocked / timeout in Phase 2, needs an
+  account). RainViewer availability and limits are also unverified here.
+
+- Live source switched to **adsb.fi** (2026-10-27): adsb.lol now answers 429 because of a per-IP quota
+  (`x-ratelimit-limit: 4, 4;w=1, 60;w=60, 500;w=86400`, i.e. 500 requests/day), which the shared Cloudflare Worker IP
+  exhausts; one phone polling every 12 s alone would use it up in under 2 hours. adsb.fi open data: no key, 1 req/s,
+  no daily cap, same readsb/ADSBx v2 format; terms: personal non-commercial, cite adsb.fi with a link (footer).
+  New Worker route `/adsbfi` (`/v3/lat/../lon/../dist/..`, `/v2/callsign/`, `/v2/registration/`, `/v2/hex/`).
+  `js/api.js` `liveQuery()`: adsb.fi first, adsb.lol as fallback; a source that answers 429 is skipped for 5 min.
+  The selected aircraft outside the view is now looked up by hex. `tools/api-check.html` has rows for adsb.fi via the
+  Worker and direct (if direct passes CORS, it could later skip the Worker and use the phone's own IP).
+  Risk: the Worker's IP is shared with other Cloudflare users, so adsb.fi's 1 req/s limit could still be hit by others.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.

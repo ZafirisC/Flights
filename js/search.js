@@ -1,6 +1,6 @@
 // Search box: live flights (callsign, flight number, registration) and airports (ICAO, IATA, name, city).
 import { fetchAirports, fetchFlightByCallsign, fetchAircraftByReg } from './api.js';
-import { IATA_TO_ICAO } from './airlines.js';
+import { IATA_TO_ICAO, flightNumbers } from './airlines.js';
 import { flashStatus, clearStatus } from './status.js';
 
 const MAX_FLIGHTS = 5;
@@ -54,6 +54,7 @@ function matchFlights(q, aircraft) {
   if (!cands.length && reg.length < 2) return [];
   return aircraft
     .filter((ac) => (ac.callsign && cands.some((c) => ac.callsign.startsWith(c)))
+      || (reg.length >= 3 && flightNumbers(ac.callsign)?.iata.startsWith(reg))
       || (ac.reg && ac.reg.replace('-', '').startsWith(reg.replace('-', ''))))
     .sort((a, b) => (a.callsign || '').localeCompare(b.callsign || ''))
     .slice(0, MAX_FLIGHTS);
@@ -127,7 +128,7 @@ export function initSearch(input, map, layer, { onAirport } = {}) {
     items = [
       ...flights.map((ac) => ({
         html: `<span class="sg-icon">✈</span><b>${esc(ac.callsign || ac.hex.toUpperCase())}</b>
-          <span class="sg-sub">${esc([ac.reg, ac.type].filter(Boolean).join(' · ') || 'Live')}</span>`,
+          <span class="sg-sub">${esc([flightNumbers(ac.callsign)?.iata, ac.reg, ac.type].filter(Boolean).join(' · ') || 'Live')}</span>`,
         run: () => { input.value = ac.callsign || ac.reg || ''; layer.focus(ac); },
       })),
       ...ports.map((a) => ({

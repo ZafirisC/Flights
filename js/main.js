@@ -10,6 +10,9 @@ import { initTheme } from './theme.js';
 import { flightFromUrl, openSharedFlight, shareFlight } from './share.js';
 import { initAircraftPanel } from './aircraft-panel.js';
 import { initAirportPanel } from './airport-panel.js';
+import { initRefresh } from './refresh.js';
+import { initAirportLayer } from './airport-layer.js';
+import { initLayers } from './layers.js';
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => { /* app works without it */ });
@@ -29,7 +32,7 @@ async function start() {
   const layer = createAircraftLayer(map, {
     onUpdate: (aircraft) => renderAlerts(aircraft, (hex) => layer.select(hex)),
     onSelect: (ac) => (ac ? panel.open(ac) : panel.close({ silent: true })),
-    onSelectedUpdate: (ac) => panel.update(ac),
+    onSelectedUpdate: (ac, state) => panel.update(ac, state),
   });
 
   document.addEventListener('click', (e) => {
@@ -39,7 +42,10 @@ async function start() {
 
   const shared = flightFromUrl();
   if (shared) await openSharedFlight(layer, shared); // before polling, so the first fetch is at the flight
-  startTraffic(map, layer);
+  const traffic = startTraffic(map, layer);
+  initRefresh(map, layer, traffic);
+  initLayers(map);
   const airportPanel = initAirportPanel(map, layer);
   initSearch(document.getElementById('search'), map, layer, { onAirport: (a) => airportPanel.open(a) });
+  initAirportLayer(map, { onSelect: (a) => airportPanel.open(a) });
 }

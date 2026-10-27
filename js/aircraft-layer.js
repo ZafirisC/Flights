@@ -4,6 +4,7 @@
 import { altitudeColor } from './altitude.js';
 
 const PLANE_PATH = 'M12 2c.8 0 1.3.8 1.3 1.8V9l7.7 4.6v2l-7.7-2.3v4.9l2.2 1.7v1.6L12 20.6l-3.5.9v-1.6l2.2-1.7v-4.9L3 15.6v-2L10.7 9V3.8C10.7 2.8 11.2 2 12 2z';
+const LOST_MS = 45000; // selected aircraft not received for this long → "Signal lost"
 const EMERGENCY_COLOR = '#d32f2f';
 const EMERGENCIES = { 7500: 'Hijack', 7600: 'Radio failure', 7700: 'Emergency' };
 
@@ -26,7 +27,8 @@ function iconFor(ac, selected) {
   };
 }
 
-// onSelect(ac | null) fires when the selection changes; onSelectedUpdate(ac) on each fetch while selected.
+// onSelect(ac | null) fires when the selection changes; onSelectedUpdate(ac, { lost }) on each fetch while selected.
+// The selected aircraft stays on the map (and in the panel) even when a fetch no longer contains it.
 export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate } = {}) {
   const cluster = L.markerClusterGroup({
     disableClusteringAtZoom: 8,
@@ -51,7 +53,7 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
     });
     marker.aircraft = ac;
     marker.on('click', () => select(ac.hex));
-    return { marker, key, pinned: wantsPin(ac) };
+    return { marker, key, pinned: wantsPin(ac), seenAt: Date.now(), missing: false };
   }
 
   // Applies icon, z-order and layer (cluster or pinned) for one aircraft.
@@ -86,6 +88,7 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
     for (const ac of aircraft) {
       seen.add(ac.hex);
       let entry = markers.get(ac.hex);
+      if (entry) { entry.seenAt = Date.now(); entry.missing = false; }
       if (!entry) {
         entry = create(ac);
         markers.set(ac.hex, entry);
@@ -101,6 +104,7 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
     }
     for (const [hex, entry] of markers) {
       if (seen.has(hex)) continue;
+      if (hex === selectedHex) { entry.missing = true; continue; } // keep the selection alive
       if (entry.pinned) pinned.removeLayer(entry.marker);
       else batch.out.push(entry.marker);
       markers.delete(hex);
@@ -108,8 +112,45 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
     apply(batch);
 
     if (pendingHex && markers.has(pendingHex)) select(pendingHex);
-    if (selectedHex && markers.has(selectedHex)) onSelectedUpdate?.(markers.get(selectedHex).marker.aircraft);
+    reportSelected();
     onUpdate?.(aircraft);
+  }
+
+  function reportSelected() {
+    const entry = selectedHex && markers.get(selectedHex);
+    if (entry) onSelectedUpdate?.(entry.marker.aircraft, { lost: Date.now() - entry.seenAt > LOST_MS });
+  }
+
+  // Selected aircraft that the last area fetch did not contain (moved out of view): the caller can look it up directly.
+  const selectedMissing = () => {
+    const entry = selectedHex && markers.get(selectedHex);
+    return entry?.missing ? entry.marker.aircraft : null;
+  };
+
+  // A position for the selected aircraft that came from a direct lookup.
+  function updateSelected(ac) {
+    const entry = ac.hex === selectedHex && markers.get(ac.hex);
+    if (!entry) return;
+    entry.seenAt = Date.now();
+    entry.marker.aircraft = ac;
+    const { key, icon } = iconFor(ac, true);
+    if (entry.key !== key) { entry.marker.setIcon(icon); entry.key = key; }
+    entry.marker.setLatLng([ac.lat, ac.lon]);
+    reportSelected();
+  }
+
+  // Drop every marker and rebuild from the next fetch; the selected aircraft is kept.
+  function reset() {
+    const keep = selectedHex && markers.get(selectedHex)?.marker.aircraft;
+    cluster.clearLayers();
+    pinned.clearLayers();
+    markers.clear();
+    if (keep) {
+      const entry = create(keep);
+      entry.missing = true;
+      markers.set(keep.hex, entry);
+      pinned.addLayer(entry.marker);
+    }
   }
 
   function restyle(hex) {
@@ -127,7 +168,11 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
     if (hex === selectedHex) return;
     const previous = selectedHex;
     selectedHex = hex;
-    if (previous) restyle(previous);
+    if (previous) {
+      const old = markers.get(previous);
+      if (old?.missing) { pinned.removeLayer(old.marker); markers.delete(previous); } // it had left the data
+      else restyle(previous);
+    }
     if (hex) {
       restyle(hex);
       const latlng = markers.get(hex).marker.getLatLng();
@@ -144,5 +189,5 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
 
   const list = () => [...markers.values()].map((e) => e.marker.aircraft);
 
-  return { update, select, focus, list, count: () => markers.size };
+  return { update, select, focus, list, selectedMissing, updateSelected, reset, count: () => markers.size };
 }

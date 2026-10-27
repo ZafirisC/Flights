@@ -10,9 +10,15 @@ const NUM = '-?\\d+(?:\\.\\d+)?';
 const ROUTES = [
   // Live positions: /v2/point/{lat}/{lon}/{radius_nm}; search/share: /v2/callsign/{callsign}, /v2/reg/{registration}
   { prefix: '/adsblol', upstream: 'https://api.adsb.lol',
-    path: new RegExp(`^/v2/(point/${NUM}/${NUM}/\\d{1,3}|callsign/[A-Za-z0-9]{1,8}|reg/[A-Za-z0-9-]{2,10})$`), ttl: 5 },
+    path: new RegExp(`^/v2/(point/${NUM}/${NUM}/\\d{1,3}|callsign/[A-Za-z0-9]{1,8}|reg/[A-Za-z0-9-]{2,10}|hex/[0-9a-fA-F]{6})$`), ttl: 5 },
+  // Primary live source: /v3/lat/{lat}/lon/{lon}/dist/{nm}; /v2/callsign/{cs}, /v2/registration/{reg}, /v2/hex/{hex}
+  { prefix: '/adsbfi', upstream: 'https://opendata.adsb.fi/api',
+    path: new RegExp(`^/(v3/lat/${NUM}/lon/${NUM}/dist/\\d{1,3}|v2/(callsign/[A-Za-z0-9]{1,8}|registration/[A-Za-z0-9-]{2,10}|hex/[0-9a-fA-F]{6}))$`), ttl: 5 },
   { prefix: '/airplaneslive', upstream: 'https://api.airplanes.live',
     path: new RegExp(`^/v2/point/${NUM}/${NUM}/\\d{1,3}$`), ttl: 5 },
+  // Position history (tar1090 traces): /data/traces/{last 2 hex chars}/trace_full_{hex}.json or trace_recent_{hex}.json
+  { prefix: '/adsbtrace', upstream: 'https://adsb.lol',
+    path: /^\/data\/traces\/[0-9a-f]{2}\/trace_(full|recent)_[0-9a-f]{6}\.json$/, ttl: 30 },
   // METAR / TAF: /metar?ids=LGTS&format=json, /taf?ids=LGTS&format=json
   { prefix: '/awc', upstream: 'https://aviationweather.gov/api/data',
     path: /^\/(metar|taf)$/, query: ['ids', 'format', 'hours'], ttl: 300 },
