@@ -34,10 +34,10 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
 - [x] Weather and day/night layers
 - [x] Live ATC links
 
-### v1.1 Phase 3 — Scheduled vs actual times (Opus for source comparison/Worker design, Sonnet to implement)
-- [ ] Pick free-tier source
-- [ ] Worker route with key + 15 min cache
-- [ ] Panel: scheduled/actual, delay colour, graceful failure
+### v1.1 Phase 3 — Scheduled vs actual times (Opus for source comparison/Worker design, Sonnet to implement) — code done, awaiting key + Worker redeploy + test
+- [x] Pick free-tier source
+- [x] Worker route with key + 15 min cache
+- [x] Panel: scheduled/actual, delay colour, graceful failure
 
 ## API check results (Phase 2)
 
@@ -182,6 +182,25 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   The selected aircraft outside the view is now looked up by hex. `tools/api-check.html` has rows for adsb.fi via the
   Worker and direct (if direct passes CORS, it could later skip the Worker and use the phone's own IP).
   Risk: the Worker's IP is shared with other Cloudflare users, so adsb.fi's 1 req/s limit could still be hit by others.
+
+- **Live positions — OPEN, parked by Zaf (2026-10-27):** check page from the Worker: adsb.fi 403 and airplanes.live 403
+  (both block Cloudflare's shared Worker IPs), adsb.lol 429 (500/day per IP quota used up on the shared IP); all three are
+  CORS-blocked directly. So the live map currently shows no aircraft. Options when resumed: (A) OpenSky with a free account,
+  OAuth client secret in the Worker (4000 credits/day ≈ 13 h of use at 1 credit/poll; also has tracks); (B) a proxy on a
+  non-Cloudflare host. Also found: the Cache API is a no-op on `*.workers.dev`, so the Worker's edge caches never worked.
+- v1.1 Phase 3 source comparison (2026-10-27, free + no card only): **AeroDataBox Basic** (RapidAPI) chosen — free,
+  ~400–600 units/month (sources differ), flight status = Tier 2 = 2 units → roughly 200–300 lookups/month, 1 req/s,
+  scheduled + revised (estimated/actual gate) + runway times; non-commercial, attribution required (shown in the panel).
+  Rejected: aviationstack free (100 req/month, HTTP only, 1/min), AirLabs free (1000/month but reduced fields and the key
+  may expire), FlightAware AeroAPI personal ($5 credit but card on file).
+- v1.1 Phase 3 build: Worker route `/flighttimes/{callsign}` → AeroDataBox `/flights/callsign/{cs}` (callsign, so the ADS-B
+  callsign matches directly), key in secret `AERODATABOX_KEY`, answer trimmed to number/status/departure/arrival times,
+  cached 15 min per callsign (also empty answers) in Workers KV `TIMES_CACHE` if bound, else in instance memory; after
+  401/403/429 upstream is not called for 1 h. No key → 503. `js/flight-times.js` picks the leg in the air (else the one
+  closest to now); "Actual" = revisedTime once departed/arrived (gate time, falls back to runway), else "Estimated"
+  (revised or predicted). Delay colours: green ≤ 15 min or early, orange 16–45, red > 45. Called only when an aircraft
+  panel opens (client also caches 15 min); any failure leaves the section empty. Tested with mocked Worker/AeroDataBox.
+  Not testable live until the live-position problem above is solved (no aircraft to open).
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.

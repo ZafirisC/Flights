@@ -129,4 +129,4 @@ Cloudflare Worker only for CORS or to hide an API key. UI stays in English.
 ### Phase 3 — Scheduled vs actual times
 Free tier only, no credit card. API key only in the Cloudflare Worker. Called only when a flight panel is
 opened; cached ~15 min per flight in the Worker. Shows scheduled vs actual/estimated departure and arrival,
-delay in minutes (green ≤ 15, orange, red). On failure or exhausted quota the panel simply hides the times.
+delay in minutes (green ≤ 15, orange 16–45, red > 45). Source: AeroDataBox Basic (free) via `/flighttimes` in the Worker. On failure or exhausted quota the panel simply hides the times.

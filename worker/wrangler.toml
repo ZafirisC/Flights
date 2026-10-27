@@ -1,3 +1,8 @@
 name = "flights-proxy"
 main = "worker.js"
 compatibility_date = "2026-10-01"
+
+# Optional (v1.1 Phase 3): KV cache for /flighttimes. Create the namespace, then uncomment with its id.
+# [[kv_namespaces]]
+# binding = "TIMES_CACHE"
+# id = "<namespace id>"
