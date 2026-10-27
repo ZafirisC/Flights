@@ -5,6 +5,8 @@ import { emergencyOf } from './aircraft-layer.js';
 import { weatherText } from './forecast.js';
 import { decodeMetar, metarSummary } from './metar.js';
 import { flightNumbers } from './airlines.js';
+import { createTrack } from './track.js';
+import { liveAtcLink } from './atc.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -44,7 +46,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
   let hex = null;
   let token = 0; // ignores async results for a panel that was replaced
   let last = null; // { ac, at }
-  let trail = null;
+  const track = createTrack(map);
   let ticker = null;
 
   const sec = (name) => el.querySelector(`[data-sec="${name}"]`);
@@ -82,6 +84,10 @@ export function initAircraftPanel(map, { onClose } = {}) {
       row('To', airportLabel(route?.destination)),
       route ? '<div class="note">Route from adsbdb by callsign; may differ from today\'s flight.</div>' : '',
     ].join(''));
+    track.setDestination(route?.destination?.lat != null ? [route.destination.lat, route.destination.lon] : null);
+    const atc = [liveAtcLink(route?.origin?.icao, `ATC ${route?.origin?.iata || route?.origin?.icao || ''}`),
+      liveAtcLink(route?.destination?.icao, `ATC ${route?.destination?.iata || route?.destination?.icao || ''}`)].join('');
+    if (atc && t === token) sec('flight')?.insertAdjacentHTML('beforeend', `<div class="btn-row">${atc}</div>`);
     loadWeather(t, route?.destination);
   }
 
@@ -135,7 +141,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     render(ac);
     showPanel();
     revealOnMap(map, [ac.lat, ac.lon]);
-    trail = L.polyline([[ac.lat, ac.lon]], { color: '#1565c0', weight: 3, opacity: 0.8, interactive: false }).addTo(map);
+    track.start(ac);
     ticker = setInterval(tick, 1000);
     loadFlight(t, ac);
     loadAircraft(t, ac);
@@ -149,9 +155,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     last = { ac, at: Date.now() };
     const s = sec('live');
     if (s) s.innerHTML = liveHtml(ac, ac.seen);
-    const pts = trail.getLatLngs();
-    const end = pts[pts.length - 1];
-    if (!end || end.lat !== ac.lat || end.lng !== ac.lon) trail.addLatLng([ac.lat, ac.lon]);
+    track.extend(ac);
   }
 
   function tick() {
@@ -167,8 +171,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     token++;
     releasePanel(yieldPanel);
     clearInterval(ticker);
-    trail?.remove();
-    trail = null;
+    track.clear();
     el.innerHTML = '';
     hidePanel();
     if (!silent) onClose?.();

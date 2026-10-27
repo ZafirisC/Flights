@@ -20,6 +20,9 @@ const CHECKS = [
   { name: 'airplanes.live', live: true, url: () => `${SOURCES.airplanesLive}/v2/point/${LAT}/${LON}/${RADIUS_NM}` },
   { name: 'OpenSky', live: true,
     url: () => `${SOURCES.opensky}/states/all?lamin=${LAT - 1.5}&lomin=${LON - 2}&lamax=${LAT + 1.5}&lomax=${LON + 2}` },
+  // v1.1 Phase 2: position history for the flight track, and radar tiles index. Expect 404 for a hex with no trace today.
+  { name: 'adsb.lol trace (via Worker)', url: () => `${SOURCES.adsbTrace}/data/traces/${sample.hex.slice(-2)}/trace_full_${sample.hex}.json` },
+  { name: 'RainViewer', url: () => `${SOURCES.rainviewer}/public/weather-maps.json` },
   { name: 'adsbdb callsign', url: () => `${SOURCES.adsbdb}/callsign/${sample.callsign}` },
   { name: 'adsbdb aircraft', url: () => `${SOURCES.adsbdb}/aircraft/${sample.hex}` },
   { name: 'Planespotters', url: () => `${SOURCES.planespotters}/photos/hex/${sample.hex}` },

@@ -13,6 +13,9 @@ const ROUTES = [
     path: new RegExp(`^/v2/(point/${NUM}/${NUM}/\\d{1,3}|callsign/[A-Za-z0-9]{1,8}|reg/[A-Za-z0-9-]{2,10})$`), ttl: 5 },
   { prefix: '/airplaneslive', upstream: 'https://api.airplanes.live',
     path: new RegExp(`^/v2/point/${NUM}/${NUM}/\\d{1,3}$`), ttl: 5 },
+  // Position history (tar1090 traces): /data/traces/{last 2 hex chars}/trace_full_{hex}.json or trace_recent_{hex}.json
+  { prefix: '/adsbtrace', upstream: 'https://adsb.lol',
+    path: /^\/data\/traces\/[0-9a-f]{2}\/trace_(full|recent)_[0-9a-f]{6}\.json$/, ttl: 30 },
   // METAR / TAF: /metar?ids=LGTS&format=json, /taf?ids=LGTS&format=json
   { prefix: '/awc', upstream: 'https://aviationweather.gov/api/data',
     path: /^\/(metar|taf)$/, query: ['ids', 'format', 'hours'], ttl: 300 },

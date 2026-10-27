@@ -4,6 +4,9 @@
 Keeps large and medium airports, plus small airports that have an ICAO or IATA code
 and scheduled service. Output is compact JSON for the in-browser search and airport panel.
 
+Each airport also gets a "tz" (IANA time zone) derived from its coordinates with the offline
+`timezonefinder` package (pip install timezonefinder), because OurAirports has no time zone.
+
 Usage:
   python3 scripts/build_airports.py                      # download CSVs
   python3 scripts/build_airports.py --airports a.csv --runways r.csv   # use local copies
@@ -72,7 +75,16 @@ def runways_by_airport(rows):
     return out
 
 
-def build(airports, runways):
+def make_tz_lookup():
+    try:
+        from timezonefinder import TimezoneFinder
+    except ImportError:
+        sys.exit("timezonefinder is required for airport time zones: pip install timezonefinder")
+    finder = TimezoneFinder()
+    return lambda lat, lon: finder.timezone_at(lat=lat, lng=lon)
+
+
+def build(airports, runways, tz_of):
     rwys = runways_by_airport(runways)
     result = []
     for a in airports:
@@ -86,6 +98,7 @@ def build(airports, runways):
         item = {
             "icao": icao, "iata": iata, "name": a["name"], "city": a["municipality"] or None,
             "country": a["iso_country"] or None, "lat": lat, "lon": lon,
+            "tz": tz_of(lat, lon),
             "elev": num(a["elevation_ft"]), "type": a["type"].split("_")[0],
             "rwy": rwys.get(a["id"]),
         }
@@ -100,11 +113,11 @@ def main():
     p.add_argument("--runways", help="local runways.csv (default: download)")
     args = p.parse_args()
 
-    data = build(read_csv(args.airports, "airports"), read_csv(args.runways, "runways"))
+    data = build(read_csv(args.airports, "airports"), read_csv(args.runways, "runways"), make_tz_lookup())
     doc = {
         "source": "OurAirports (public domain), https://ourairports.com/data/",
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "fields": "icao, iata, name, city, country, lat, lon, elev (ft), type, "
+        "fields": "icao, iata, name, city, country, lat, lon, tz (IANA), elev (ft), type, "
                   "rwy[id, len (ft), wid (ft), surf, hdg (deg true)]",
         "airports": data,
     }

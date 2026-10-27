@@ -3,6 +3,8 @@
 import { fetchMetar, fetchTaf } from './api.js';
 import { decodeMetar, formatTaf } from './metar.js';
 import { airportTraffic } from './airport-traffic.js';
+import { localTime } from './localtime.js';
+import { liveAtcLink } from './atc.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -66,6 +68,7 @@ export function initAirportPanel(map, layer) {
   let traffic = null; // last airportTraffic() result
   let timer = null;
   let marker = null;
+  let clock = null;
 
   const yieldPanel = () => close();
   const body = () => el.querySelector('[data-body]');
@@ -130,8 +133,10 @@ export function initAirportPanel(map, layer) {
         </div>
         <button type="button" class="panel-close" aria-label="Close">×</button>
       </div>
+      ${rowHtml('Local time', '<span data-clock></span>')}
       ${row('Elevation', a.elev !== undefined ? `${a.elev.toLocaleString('en')} ft` : null)}
       ${rowHtml('Runways', runwaysHtml(a.rwy))}
+      ${a.icao ? `<div class="btn-row">${liveAtcLink(a.icao)}</div>` : ''}
       <div class="tabs">
         <button type="button" data-tab="departures">Departures</button>
         <button type="button" data-tab="arrivals">Arrivals</button>
@@ -152,6 +157,13 @@ export function initAirportPanel(map, layer) {
     showPanel();
     revealOnMap(map, [a.lat, a.lon]);
     marker = L.circleMarker([a.lat, a.lon], { radius: 9, color: '#1565c0', weight: 3, fillOpacity: 0.25, interactive: false }).addTo(map);
+    const tick = () => {
+      const cell = el.querySelector('[data-clock]');
+      const lt = localTime(a.tz);
+      if (cell) cell.innerHTML = lt ? esc(lt.text) : `<span class="na">${NA}</span>`;
+    };
+    tick();
+    clock = setInterval(tick, 30000); // updates when the minute changes
     renderBody();
     loadTraffic(t);
     schedule(t);
@@ -162,6 +174,7 @@ export function initAirportPanel(map, layer) {
     apt = null;
     token++;
     clearTimeout(timer);
+    clearInterval(clock);
     releasePanel(yieldPanel);
     marker?.remove();
     marker = null;
