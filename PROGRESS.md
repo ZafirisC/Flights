@@ -34,7 +34,7 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
 - [x] Weather and day/night layers
 - [x] Live ATC links
 
-### v1.1 Phase 3 — Scheduled vs actual times (Opus for source comparison/Worker design, Sonnet to implement) — code done, awaiting key + Worker redeploy + test
+### v1.1 Phase 3 — Scheduled vs actual times (Opus for source comparison/Worker design, Sonnet to implement) — code done; **parked by Zaf (2026-10-27): no RapidAPI account**, so no key. Without `AERODATABOX_KEY` the Worker answers 503 (or 404 before redeploy) and the panel simply hides the times; nothing else is affected
 - [x] Pick free-tier source
 - [x] Worker route with key + 15 min cache
 - [x] Panel: scheduled/actual, delay colour, graceful failure
