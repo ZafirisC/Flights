@@ -10,7 +10,7 @@ export function sourcesFor(worker) {
     airplanesLive: worker ? `${worker}/airplaneslive` : 'https://api.airplanes.live',
     adsbTrace: worker ? `${worker}/adsbtrace` : 'https://adsb.lol',
     rainviewer: 'https://api.rainviewer.com',
-    opensky: 'https://opensky-network.org/api',
+    opensky: worker ? `${worker}/opensky` : 'https://opensky-network.org/api',
     adsbdb: 'https://api.adsbdb.com/v0',
     planespotters: 'https://api.planespotters.net/pub',
     aviationWeather: worker ? `${worker}/awc` : 'https://aviationweather.gov/api/data',
@@ -25,7 +25,10 @@ export async function getJSON(url, { timeout = 10000 } = {}) {
   const timer = setTimeout(() => ctrl.abort(), timeout);
   try {
     const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
+    if (!res.ok) {
+      const retryAfter = Number(res.headers.get('Retry-After')) || null; // seconds
+      throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status, retryAfter });
+    }
     return await res.json();
   } finally {
     clearTimeout(timer);
@@ -121,25 +124,46 @@ export async function fetchForecast(lat, lon, hours = 7) {
   }));
 }
 
-// Live aircraft. Primary: adsb.fi (1 req/s, no daily cap). Fallback: adsb.lol (500 requests/day per IP, which a
-// shared Worker IP exhausts quickly). A source that answers 429 is skipped for a while; one that answers 401/403
-// (it blocks the Worker's shared Cloudflare IP) is skipped for longer. While every source is paused, no request is sent.
+// Live aircraft. Primary: OpenSky via the Worker (free account, 4000 credits/day; a poll of a box up to 25 sq deg costs
+// 1 credit, larger boxes up to 3). Fallbacks: adsb.fi (blocks the Worker's shared Cloudflare IP: 403) and adsb.lol
+// (500 requests/day per IP, used up on the shared IP: 429), kept in case they let the Worker in again.
+// A source that answers 429 is skipped for a while (OpenSky's Retry-After when given); one that answers 401/403 for
+// longer. While every source is paused, no request is sent.
 // Normalised to: { hex, callsign, lat, lon, alt (ft, null if unknown), onGround, gs (kt), track (deg), vrate (ft/min),
 //   squawk, seen (s), reg, type }
-export const MAX_RADIUS_NM = 250; // limit of both sources
+export const MAX_RADIUS_NM = 250; // limit of the adsb sources; OpenSky's box for it stays under its 400 sq deg cap
 
-const BACKOFF_MS = { 429: 5 * 60000, 401: 30 * 60000, 403: 30 * 60000 }; // by HTTP status
+const BACKOFF_MS = { 429: 5 * 60000, 401: 30 * 60000, 403: 30 * 60000, 503: 60000 }; // by HTTP status
 const backoff = {}; // source name → { until, status }
 
+const f2 = (n) => n.toFixed(2);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+// OpenSky query for a box of `r` nm around a point.
+function openskyBox(lat, lon, r) {
+  const dLat = r / 60;
+  // Near the poles the box is narrowed so it stays under the Worker's 400 sq deg cap.
+  const dLon = Math.min(180, r / (60 * Math.max(0.1, Math.cos(lat * Math.PI / 180))), 97 / dLat);
+  return `lamin=${f2(clamp(lat - dLat, -90, 90))}&lamax=${f2(clamp(lat + dLat, -90, 90))}`
+    + `&lomin=${f2(clamp(lon - dLon, -180, 180))}&lomax=${f2(clamp(lon + dLon, -180, 180))}`;
+}
+
+// A source without a path for a kind is skipped for that kind (OpenSky has no registrations).
 const LIVE = [
+  { name: 'opensky', normalise: normaliseOpenSky, path: {
+    point: (lat, lon, r) => `/states/all?${openskyBox(lat, lon, Math.min(r, MAX_RADIUS_NM))}`,
+    callsign: (cs) => `/callsign/${encodeURIComponent(cs)}`,
+    // Box of ~60 nm around the last known position keeps a hex lookup at 1 credit.
+    hex: (hex, lat, lon) => `/states/all?${openskyBox(lat, lon, 60)}&icao24=${encodeURIComponent(hex)}`,
+  } },
   { name: 'adsbFi', path: {
-    point: (lat, lon, r) => `/v3/lat/${lat}/lon/${lon}/dist/${r}`,
+    point: (lat, lon, r) => `/v3/lat/${f2(lat)}/lon/${f2(lon)}/dist/${r}`,
     callsign: (cs) => `/v2/callsign/${encodeURIComponent(cs)}`,
     reg: (reg) => `/v2/registration/${encodeURIComponent(reg)}`,
     hex: (hex) => `/v2/hex/${encodeURIComponent(hex)}`,
   } },
   { name: 'adsbLol', path: {
-    point: (lat, lon, r) => `/v2/point/${lat}/${lon}/${r}`,
+    point: (lat, lon, r) => `/v2/point/${f2(lat)}/${f2(lon)}/${r}`,
     callsign: (cs) => `/v2/callsign/${encodeURIComponent(cs)}`,
     reg: (reg) => `/v2/reg/${encodeURIComponent(reg)}`,
     hex: (hex) => `/v2/hex/${encodeURIComponent(hex)}`,
@@ -151,17 +175,19 @@ const LIVE = [
 async function liveQuery(kind, ...args) {
   let lastErr = null;
   for (const src of LIVE) {
-    if (Date.now() < (backoff[src.name]?.until || 0)) continue;
+    if (!src.path[kind] || Date.now() < (backoff[src.name]?.until || 0)) continue;
     try {
-      return normaliseAdsb(await getJSON(SOURCES[src.name] + src.path[kind](...args)));
+      return (src.normalise || normaliseAdsb)(await getJSON(SOURCES[src.name] + src.path[kind](...args)));
     } catch (err) {
       if (err.status === 404) return [];
-      if (BACKOFF_MS[err.status]) backoff[src.name] = { until: Date.now() + BACKOFF_MS[err.status], status: err.status };
+      const wait = err.status === 429 && err.retryAfter ? err.retryAfter * 1000 : BACKOFF_MS[err.status];
+      if (wait) backoff[src.name] = { until: Date.now() + wait, status: err.status };
       lastErr = err;
     }
   }
-  const paused = LIVE.map((src) => backoff[src.name]).filter((b) => b && b.until > Date.now());
-  if (paused.length === LIVE.length) {
+  const usable = LIVE.filter((src) => src.path[kind]);
+  const paused = usable.map((src) => backoff[src.name]).filter((b) => b && b.until > Date.now());
+  if (paused.length === usable.length) {
     const next = paused.reduce((a, b) => (b.until < a.until ? b : a));
     throw Object.assign(new Error(`HTTP ${next.status}`), { status: next.status, retryAt: next.until });
   }
@@ -170,7 +196,7 @@ async function liveQuery(kind, ...args) {
 
 export async function fetchAircraft(lat, lon, radiusNm) {
   const r = Math.max(1, Math.min(MAX_RADIUS_NM, Math.ceil(radiusNm)));
-  return liveQuery('point', lat.toFixed(2), lon.toFixed(2), r);
+  return liveQuery('point', lat, lon, r);
 }
 
 // Live aircraft with this callsign (null if not airborne / not seen).
@@ -185,7 +211,7 @@ export async function fetchAircraftByReg(reg) {
 
 // The same aircraft by its Mode S hex: used when it is outside the fetched area.
 export async function fetchTrackedAircraft(ac) {
-  return (await liveQuery('hex', ac.hex)).find((a) => a.hex === ac.hex) || null;
+  return (await liveQuery('hex', ac.hex, ac.lat, ac.lon)).find((a) => a.hex === ac.hex) || null;
 }
 
 // Scheduled / actual times for a callsign (AeroDataBox via the Worker, which holds the key and caches 15 min).
@@ -222,6 +248,32 @@ export async function fetchRadarFrame() {
   const frame = data?.radar?.past?.at(-1);
   if (!frame || !data.host) return null;
   return { tiles: `${data.host}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`, time: frame.time };
+}
+
+// OpenSky state vectors (arrays, SI units) → same shape as normaliseAdsb. Needs no `extended` data.
+// [icao24, callsign, country, time_position, last_contact, lon, lat, baro_alt m, on_ground, velocity m/s,
+//  true_track, vertical_rate m/s, sensors, geo_alt m, squawk, spi, position_source]
+const FT_PER_M = 3.28084;
+function normaliseOpenSky(data) {
+  const now = data?.time ?? Date.now() / 1000;
+  const n = (v, k) => (typeof v === 'number' ? Math.round(v * k) : null);
+  return (data?.states || [])
+    .filter((s) => s[0] && typeof s[5] === 'number' && typeof s[6] === 'number')
+    .map((s) => ({
+      hex: String(s[0]).toLowerCase(),
+      callsign: (s[1] || '').trim() || null,
+      lat: s[6],
+      lon: s[5],
+      alt: s[8] ? null : n(s[7] ?? s[13], FT_PER_M),
+      onGround: !!s[8],
+      gs: n(s[9], 1.94384),
+      track: s[10] ?? null,
+      vrate: n(s[11], 196.85),
+      squawk: s[14] ?? null,
+      seen: Math.max(0, Math.round(now - (s[3] ?? s[4] ?? now))),
+      reg: null,
+      type: null,
+    }));
 }
 
 // adsb.fi and adsb.lol both use the readsb / ADSBExchange v2 format (list in `ac`, or `aircraft` in some versions).

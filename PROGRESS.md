@@ -190,7 +190,20 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   non-Cloudflare host. Also found: the Cache API is a no-op on `*.workers.dev`, so the Worker's edge caches never worked.
   Retry fix (2026-10-27): a live source answering 401/403 is now paused 30 min (429: 5 min, as before); while all are
   paused no request is sent and the status reads "Live data blocked by the source (HTTP …). Next try at hh:mm"
-  instead of retrying every 12 s. Root cause (blocked Worker IP) still open, see options above.
+  instead of retrying every 12 s.
+- **Live positions → OpenSky (option A, 2026-10-27, code done, awaiting account + secrets + Worker redeploy + test).**
+  Nothing in the Worker broke; the upstreams changed (adsb.lol daily per-IP quota, adsb.fi blocks Cloudflare IPs).
+  Worker: `/opensky/states/all` (box required, ≤ 400 sq deg, optional `icao24`) and `/opensky/callsign/{cs}` (global
+  query filtered in the Worker, shared 15 s); OAuth2 client-credentials token cached in memory, 401 → one retry with a
+  fresh token; OpenSky's `X-Rate-Limit-Retry-After-Seconds` → `Retry-After` (exposed via CORS), which the app uses as
+  its back-off. Secrets `OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET` (steps in `worker/README.md`).
+  App: `liveQuery()` order OpenSky → adsb.fi → adsb.lol; viewport box from centre + radius (1 credit at normal zoom);
+  selected aircraft outside the view = `icao24` + ~60 nm box around its last position (1 credit); registration search
+  has no OpenSky path (only works if an adsb source comes back). OpenSky gives no reg/type; the panel already gets them
+  from adsbdb. Footer credits The OpenSky Network.
+  Open: not tested against the real API (sandbox has no access); OpenSky has refused some cloud IPs before — if the
+  Worker gets 403/timeouts from it, option B (proxy on a non-Cloudflare host) is next. Flight track still uses adsb.lol
+  traces (`/adsbtrace`), not checked here.
 - v1.1 Phase 3 source comparison (2026-10-27, free + no card only): **AeroDataBox Basic** (RapidAPI) chosen — free,
   ~400–600 units/month (sources differ), flight status = Tier 2 = 2 units → roughly 200–300 lookups/month, 1 req/s,
   scheduled + revised (estimated/actual gate) + runway times; non-commercial, attribution required (shown in the panel).
