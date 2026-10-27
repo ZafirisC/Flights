@@ -122,13 +122,14 @@ export async function fetchForecast(lat, lon, hours = 7) {
 }
 
 // Live aircraft. Primary: adsb.fi (1 req/s, no daily cap). Fallback: adsb.lol (500 requests/day per IP, which a
-// shared Worker IP exhausts quickly). A source that answers 429 is skipped for a while.
+// shared Worker IP exhausts quickly). A source that answers 429 is skipped for a while; one that answers 401/403
+// (it blocks the Worker's shared Cloudflare IP) is skipped for longer. While every source is paused, no request is sent.
 // Normalised to: { hex, callsign, lat, lon, alt (ft, null if unknown), onGround, gs (kt), track (deg), vrate (ft/min),
 //   squawk, seen (s), reg, type }
 export const MAX_RADIUS_NM = 250; // limit of both sources
 
-const BACKOFF_MS = 5 * 60000;
-const backoffUntil = {}; // source name → time
+const BACKOFF_MS = { 429: 5 * 60000, 401: 30 * 60000, 403: 30 * 60000 }; // by HTTP status
+const backoff = {}; // source name → { until, status }
 
 const LIVE = [
   { name: 'adsbFi', path: {
@@ -146,19 +147,25 @@ const LIVE = [
 ];
 
 // First source that answers; 404 counts as "not found" (empty list), not as a failure.
+// When all sources are paused the error carries `retryAt` (time the first one is tried again).
 async function liveQuery(kind, ...args) {
-  let lastErr = new Error('No live source available');
+  let lastErr = null;
   for (const src of LIVE) {
-    if (Date.now() < (backoffUntil[src.name] || 0)) continue;
+    if (Date.now() < (backoff[src.name]?.until || 0)) continue;
     try {
       return normaliseAdsb(await getJSON(SOURCES[src.name] + src.path[kind](...args)));
     } catch (err) {
       if (err.status === 404) return [];
-      if (err.status === 429) backoffUntil[src.name] = Date.now() + BACKOFF_MS;
+      if (BACKOFF_MS[err.status]) backoff[src.name] = { until: Date.now() + BACKOFF_MS[err.status], status: err.status };
       lastErr = err;
     }
   }
-  throw lastErr;
+  const paused = LIVE.map((src) => backoff[src.name]).filter((b) => b && b.until > Date.now());
+  if (paused.length === LIVE.length) {
+    const next = paused.reduce((a, b) => (b.until < a.until ? b : a));
+    throw Object.assign(new Error(`HTTP ${next.status}`), { status: next.status, retryAt: next.until });
+  }
+  throw lastErr || new Error('No live source available');
 }
 
 export async function fetchAircraft(lat, lon, radiusNm) {

@@ -188,6 +188,9 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   CORS-blocked directly. So the live map currently shows no aircraft. Options when resumed: (A) OpenSky with a free account,
   OAuth client secret in the Worker (4000 credits/day ≈ 13 h of use at 1 credit/poll; also has tracks); (B) a proxy on a
   non-Cloudflare host. Also found: the Cache API is a no-op on `*.workers.dev`, so the Worker's edge caches never worked.
+  Retry fix (2026-10-27): a live source answering 401/403 is now paused 30 min (429: 5 min, as before); while all are
+  paused no request is sent and the status reads "Live data blocked by the source (HTTP …). Next try at hh:mm"
+  instead of retrying every 12 s. Root cause (blocked Worker IP) still open, see options above.
 - v1.1 Phase 3 source comparison (2026-10-27, free + no card only): **AeroDataBox Basic** (RapidAPI) chosen — free,
   ~400–600 units/month (sources differ), flight status = Tier 2 = 2 units → roughly 200–300 lookups/month, 1 req/s,
   scheduled + revised (estimated/actual gate) + runway times; non-commercial, attribution required (shown in the panel).
