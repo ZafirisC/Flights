@@ -24,8 +24,12 @@
   <div id="map" aria-label="Map"></div>
 
   <header id="topbar">
-    <input id="search" type="search" placeholder="Search flight or airport"
-           autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Search" />
+    <div id="searchrow">
+      <input id="search" type="search" placeholder="Search flight or airport"
+             autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Search" />
+      <button id="refresh" type="button" aria-label="Refresh data (hold to reload the page)">↻</button>
+    </div>
+    <div id="updated" role="status">Loading…</div>
     <ul id="suggestions" hidden></ul>
     <div id="alerts" hidden></div>
     <div id="status" hidden role="status"></div>

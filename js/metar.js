@@ -124,3 +124,24 @@ export function decodeMetar(raw) {
 export function formatTaf(raw) {
   return (raw || '').trim().replace(/\s+(?=(FM\d{6}|BECMG|TEMPO|PROB\d{2}))/g, '\n').replace(/\n(PROB\d{2})\n/g, '\n$1 ');
 }
+
+// One readable line from decodeMetar(): "Wind 320° 12 kt, Visibility 10+ km, Few clouds 2,500 ft, 18 °C, QNH 1015".
+export function metarSummary(d) {
+  const parts = [];
+  if (d.wind) {
+    const w = d.wind;
+    const dir = w.dir === 'VRB' ? 'variable' : `${String(w.dir).padStart(3, '0')}°`;
+    parts.push(w.calm ? 'Wind calm' : `Wind ${dir} ${w.speedKt} kt${w.gustKt ? `, gusting ${w.gustKt} kt` : ''}`);
+  }
+  if (d.visibility?.text) parts.push(`Visibility ${d.visibility.meters >= 9999 ? '10+ km' : d.visibility.text}`);
+  parts.push(...d.weather);
+  if (d.cavok) parts.push('No significant cloud');
+  for (const c of d.clouds) {
+    const base = c.baseFt !== null ? ` ${c.baseFt.toLocaleString('en')} ft` : '';
+    const type = c.type ? ` (${c.type})` : '';
+    parts.push(c.cover === 'OVC' || c.cover === 'VV' ? `${c.text}${base}${type}` : `${c.text} clouds${base}${type}`);
+  }
+  if (d.tempC !== null) parts.push(`${d.tempC} °C`);
+  if (d.qnhHpa !== null) parts.push(`QNH ${d.qnhHpa}`);
+  return parts.join(', ');
+}

@@ -21,11 +21,11 @@
 
 One phase per session; `/clear` between phases. Test on PC and iPhone, commit, update this file at the end of each.
 
-### v1.1 Phase 1 — Quick fixes (Sonnet; Haiku for the refresh button)
-- [ ] Persistent aircraft selection ("Signal lost" instead of closing)
-- [ ] Refresh button (tap = refetch + reset map, long-press = reload) + "Updated Xs ago"
-- [ ] Decoded METAR in aircraft panel, raw collapsible
-- [ ] Flight number (IATA/ICAO) display + search
+### v1.1 Phase 1 — Quick fixes (Sonnet; Haiku for the refresh button) — code done, awaiting PC + iPhone test
+- [x] Persistent aircraft selection ("Signal lost" instead of closing)
+- [x] Refresh button (tap = refetch + reset map, long-press = reload) + "Updated Xs ago"
+- [x] Decoded METAR in aircraft panel, raw collapsible
+- [x] Flight number (IATA/ICAO) display + search
 
 ### v1.1 Phase 2 — Map and airports (Sonnet; Haiku for airport data script and Live ATC)
 - [ ] Airports on the map, selectable
@@ -144,6 +144,18 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   Open-Meteo attribution added (CC BY 4.0); Escape in the search box no longer closes the open panel.
   Checked OK — source failures (502, network error) keep the last aircraft and show a retrying message, then
   clear on recovery; adsbdb/Planespotters failures show "Not available"; airport list failure shows a message.
+
+- v1.1 Phase 1: selected aircraft is kept by the layer even when a fetch no longer contains it (flagged `missing`;
+  removed on deselect). `traffic.js` then looks it up directly by callsign/registration (`fetchTrackedAircraft`) so the
+  panel keeps updating after the user pans away. No data for 45 s → red "Signal lost" banner in the panel (last known
+  position stays); it clears if the aircraft returns. Panel still closes with ×, Esc or a tap on the map (unchanged).
+  Refresh button + "Updated Xs ago" in `js/refresh.js` (red after 36 s = 3 missed polls): tap = `layer.reset()` +
+  `invalidateSize()` + refetch, 700 ms long-press = `location.reload()`. Aircraft panel METAR uses the existing, already
+  verified `decodeMetar()` plus new `metarSummary()` (same source as v1: aviationweather.gov JSON `rawOb` via the Worker),
+  raw METAR in a `<details>`. Flight numbers: `flightNumbers()` in `js/airlines.js` (reverse of the existing IATA→ICAO
+  table, kept as a JS module rather than JSON because all fetches must go through `api.js`); panel title shows
+  "OA98 / OAL98"; search matches IATA or ICAO, any case, spaces ignored. Tested with Playwright and mocked sources
+  (selection survives data loss, banner, search, METAR text); not yet on a real iPhone.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.

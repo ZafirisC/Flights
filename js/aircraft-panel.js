@@ -3,6 +3,8 @@
 import { fetchRoute, fetchAircraftInfo, fetchPhoto, fetchMetar, fetchForecast } from './api.js';
 import { emergencyOf } from './aircraft-layer.js';
 import { weatherText } from './forecast.js';
+import { decodeMetar, metarSummary } from './metar.js';
+import { flightNumbers } from './airlines.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -29,6 +31,14 @@ function liveHtml(ac, ageSec) {
   ].join('');
 }
 
+function metarHtml(raw) {
+  if (!raw) return row('METAR', null);
+  const d = decodeMetar(raw);
+  return `<div class="wx-head">METAR ${d.category ? `<span class="cat cat-${d.category}">${d.category}</span>` : ''}</div>
+    <div class="metar-text">${esc(metarSummary(d) || NA)}</div>
+    <details class="raw-metar"><summary>Raw METAR</summary><code>${esc(raw)}</code></details>`;
+}
+
 export function initAircraftPanel(map, { onClose } = {}) {
   const el = document.getElementById('panel-content');
   let hex = null;
@@ -41,7 +51,8 @@ export function initAircraftPanel(map, { onClose } = {}) {
   const fill = (t, name, html) => { if (t === token && sec(name)) sec(name).innerHTML = html; };
 
   function render(ac) {
-    const title = ac.callsign || ac.hex.toUpperCase();
+    const nums = flightNumbers(ac.callsign);
+    const title = nums ? `${nums.iata} / ${nums.icao}` : ac.callsign || ac.hex.toUpperCase();
     el.innerHTML = `
       <div class="panel-head">
         <div>
@@ -50,6 +61,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
         </div>
         <button type="button" class="panel-close" aria-label="Close">×</button>
       </div>
+      <div class="lost" data-sec="lost" hidden>Signal lost — showing the last known position</div>
       ${ac.callsign ? `<button type="button" class="panel-btn" data-share="${esc(ac.callsign)}">Share link</button>` : ''}
       <h3>Flight</h3><div data-sec="flight">Loading…</div>
       <h3>Aircraft</h3><div data-sec="aircraft">Loading…</div>
@@ -63,6 +75,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     try { route = ac.callsign ? await fetchRoute(ac.callsign) : null; } catch { /* shown as Not available */ }
     fill(t, 'airline', val(route?.airline?.name));
     fill(t, 'flight', [
+      row('Flight number', flightNumbers(ac.callsign)?.iata),
       row('Callsign', ac.callsign),
       row('Airline', route?.airline && [route.airline.name, route.airline.iata || route.airline.icao].filter(Boolean).join(' · ')),
       row('From', airportLabel(route?.origin)),
@@ -101,7 +114,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     const fc = forecast?.filter((_, i) => i % 2 === 0).slice(0, 4); // now, +2h, +4h, +6h
     fill(t, 'weather', `
       <div class="note">${esc(airportLabel(dest))}${dest.icao ? ` (${esc(dest.icao)})` : ''}</div>
-      ${rowHtml('METAR', metar?.rawOb ? `<code>${esc(metar.rawOb)}</code>` : val(null))}
+      ${metarHtml(metar?.rawOb)}
       ${fc?.length ? `<table class="fc"><tr><th>Local</th><th>Sky</th><th>Temp</th><th>Wind</th><th>Rain</th></tr>
         ${fc.map((h) => `<tr><td>${esc(h.time.slice(11, 16))}</td><td>${esc(weatherText(h.code))}</td>
           <td>${h.temp !== null ? `${Math.round(h.temp)}°C` : '–'}</td>
@@ -129,8 +142,10 @@ export function initAircraftPanel(map, { onClose } = {}) {
   }
 
   // New position for the open aircraft: refresh live data and extend the trail.
-  function update(ac) {
+  function update(ac, { lost = false } = {}) {
     if (ac.hex !== hex) return;
+    const banner = sec('lost');
+    if (banner) banner.hidden = !lost;
     last = { ac, at: Date.now() };
     const s = sec('live');
     if (s) s.innerHTML = liveHtml(ac, ac.seen);
