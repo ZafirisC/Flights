@@ -96,6 +96,94 @@ async function flightTimes(callsign, env, ctx, origin) {
   return json(text, origin);
 }
 
+// Live positions (OpenSky Network, free account). OAuth2 client credentials are Worker secrets OPENSKY_CLIENT_ID and
+// OPENSKY_CLIENT_SECRET. Credits (4000/day): a bounding box up to 25 sq deg costs 1, up to 100 → 2, up to 400 → 3,
+// larger or none → 4. So /states/all must carry a box of at most 400 sq deg; /callsign/{cs} is the one global query
+// (4 credits), and its answer is shared from memory for 15 s.
+const OSK_API = 'https://opensky-network.org/api';
+const OSK_TOKEN_URL = 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
+const OSK_MAX_AREA = 400;
+const BOX = { lamin: [-90, 90], lamax: [-90, 90], lomin: [-180, 180], lomax: [-180, 180] };
+let oskToken = null; // { value, until }
+let oskGlobal = null; // { until, promise } — last global states answer
+
+async function openskyToken(env, fresh = false) {
+  if (!fresh && oskToken && oskToken.until > Date.now()) return oskToken.value;
+  const res = await fetch(OSK_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials', client_id: env.OPENSKY_CLIENT_ID, client_secret: env.OPENSKY_CLIENT_SECRET,
+    }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw Object.assign(new Error(`OpenSky token HTTP ${res.status}`), { status: res.status });
+  const t = await res.json();
+  oskToken = { value: t.access_token, until: Date.now() + ((t.expires_in || 1800) - 60) * 1000 };
+  return oskToken.value;
+}
+
+// GET on the OpenSky API with the bearer token; a 401 gets one retry with a fresh token.
+async function openskyGet(env, target) {
+  let res;
+  for (const fresh of [false, true]) {
+    res = await fetch(target, {
+      headers: { Authorization: `Bearer ${await openskyToken(env, fresh)}`, 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (res.status !== 401) break;
+  }
+  return res;
+}
+
+function openskyError(res, origin) {
+  const r = reply(res.status === 429 ? 429 : 502, { error: `Upstream HTTP ${res.status}` }, origin);
+  const wait = res.headers.get('X-Rate-Limit-Retry-After-Seconds');
+  if (wait) r.headers.set('Retry-After', wait); // credits used up: seconds until they refill
+  return r;
+}
+
+async function opensky(rest, url, env, origin) {
+  if (!env.OPENSKY_CLIENT_ID || !env.OPENSKY_CLIENT_SECRET) return reply(503, { error: 'OpenSky not configured' }, origin);
+  try {
+    if (rest === '/states/all') {
+      const target = new URL(`${OSK_API}/states/all`);
+      for (const [k, [lo, hi]] of Object.entries(BOX)) {
+        const v = Number(url.searchParams.get(k));
+        if (!url.searchParams.has(k) || !(v >= lo && v <= hi)) return reply(400, { error: `Bad ${k}` }, origin);
+        target.searchParams.set(k, v);
+      }
+      const p = Object.fromEntries([...target.searchParams].map(([k, v]) => [k, Number(v)]));
+      if ((p.lamax - p.lamin) * (p.lomax - p.lomin) > OSK_MAX_AREA) return reply(400, { error: 'Area too large' }, origin);
+      const icao = url.searchParams.get('icao24');
+      if (icao !== null) {
+        if (!/^[0-9a-f]{6}$/.test(icao)) return reply(400, { error: 'Bad icao24' }, origin);
+        target.searchParams.set('icao24', icao);
+      }
+      const res = await openskyGet(env, target);
+      if (!res.ok) return openskyError(res, origin);
+      return json(await res.text(), origin);
+    }
+    const cs = rest.match(/^\/callsign\/([A-Za-z0-9]{1,8})$/);
+    if (cs) {
+      if (!oskGlobal || oskGlobal.until < Date.now()) {
+        const promise = openskyGet(env, `${OSK_API}/states/all`)
+          .then(async (res) => (res.ok ? { data: await res.json() } : { res }));
+        oskGlobal = { until: Date.now() + 15000, promise };
+        promise.then((g) => { if (g.res) oskGlobal = null; }, () => { oskGlobal = null; });
+      }
+      const g = await oskGlobal.promise;
+      if (g.res) return openskyError(g.res, origin);
+      const want = cs[1].toUpperCase();
+      const states = (g.data.states || []).filter((st) => (st[1] || '').trim().toUpperCase() === want);
+      return json(JSON.stringify({ time: g.data.time, states }), origin);
+    }
+  } catch (err) {
+    return reply(502, { error: `Upstream unreachable: ${err.message}` }, origin);
+  }
+  return reply(404, { error: 'Unknown route' }, origin);
+}
+
 function json(text, origin) {
   return new Response(text, { headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) } });
 }
@@ -107,6 +195,7 @@ function corsHeaders(origin) {
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '86400',
+    'Access-Control-Expose-Headers': 'Retry-After',
     Vary: 'Origin',
   };
   if (ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin;
@@ -131,6 +220,7 @@ export default {
 
     const times = url.pathname.match(/^\/flighttimes\/([^/]+)$/);
     if (times) return flightTimes(times[1].toUpperCase(), env, ctx, origin);
+    if (url.pathname.startsWith('/opensky/')) return opensky(url.pathname.slice('/opensky'.length), url, env, origin);
 
     const route = ROUTES.find((r) => url.pathname.startsWith(r.prefix + '/'));
     const rest = route && url.pathname.slice(route.prefix.length);

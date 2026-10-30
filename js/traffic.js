@@ -44,7 +44,10 @@ export function startTraffic(map, layer) {
       await trackSelected(id);
     } catch (err) {
       if (id !== requestId) return;
-      setStatus(`Live data unavailable (${err.message || 'network error'}). Retrying…`);
+      const why = err.message || 'network error';
+      setStatus(err.retryAt
+        ? `Live data blocked by the source (${why}). Next try at ${new Date(err.retryAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        : `Live data unavailable (${why}). Retrying…`);
     }
   }
 
