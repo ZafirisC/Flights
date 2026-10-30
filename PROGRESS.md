@@ -202,6 +202,17 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   panel opens (client also caches 15 min); any failure leaves the section empty. Tested with mocked Worker/AeroDataBox.
   Not testable live until the live-position problem above is solved (no aircraft to open).
 
+## v1.2 — Flight progress bar (Sonnet) — code done, awaiting PC + iPhone test with a real flight
+- Panel only (user decision 2026-10-30): trips/PNR do not exist in the app, so per-leg bars are a later phase. UI in English.
+- `js/progress.js` pure `computeFlightProgress()` + `legTimes()`; `js/progress-bar.js` component built once and updated
+  in place (CSS transition); panel wiring in `js/aircraft-panel.js` (route, times leg, each position, track history).
+- Method order: distance (needs a track that starts within 6 nm of the origin) → time → direct line origin→here.
+  Airports: AeroDataBox leg ICAO via `data/airports.json` first, else the adsbdb route. Airborne is capped at 99%.
+- Tests: `node --test tests/progress.test.mjs` (16, incl. a mutation check of the "never backwards" rule).
+- Visual check: real app in headless Chromium with mocked network (PC 1280×800, iPhone 13, light + dark; airborne,
+  not departed, landed, diverted, cancelled). Map tiles were blocked in the sandbox, so the map itself was not checked.
+- Open: not tried with real data (live positions are still unsolved, see above); diversion airport unavailable.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

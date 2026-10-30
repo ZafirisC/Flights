@@ -130,3 +130,14 @@ Cloudflare Worker only for CORS or to hide an API key. UI stays in English.
 Free tier only, no credit card. API key only in the Cloudflare Worker. Called only when a flight panel is
 opened; cached ~15 min per flight in the Worker. Shows scheduled vs actual/estimated departure and arrival,
 delay in minutes (green ≤ 15, orange 16–45, red > 45). Source: AeroDataBox Basic (free) via `/flighttimes` in the Worker. On failure or exhausted quota the panel simply hides the times.
+
+## 9. v1.2 — Flight progress bar
+Aircraft panel, above "Flight": departure IATA — bar with plane — destination IATA; below it
+"Flown 2h 10m · Remaining 1h 05m · 67%" and "ETA 14:35 local" (24-hour clock, airport time zone, English).
+- Airborne %: flown / (flown + remaining); flown = track since take-off (+ origin to first track point),
+  remaining = great circle from the live position to the destination. Fallbacks, in order: time
+  ((now − actual departure) / (estimated arrival − actual departure)), then straight line origin → here.
+- Before departure 0% with the departure time; landed 100%; clamp 0–99% while airborne; never moves backwards.
+- Diverted: "Diverted" (new airport is not in the data); cancelled: grey bar, struck-through text.
+- Updates with each position refresh (no extra fetch); CSS transition; bar track 8 px in a 28 px touch row.
+- Out of scope: per-leg bars for trips/PNR (no trips in the app), AI boarding-time prediction.

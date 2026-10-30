@@ -4,6 +4,7 @@
   --muted: #64748b;
   --surface: rgba(255, 255, 255, 0.95);
   --border: #cbd5e1;
+  --progress: #1565c0;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
@@ -18,6 +19,7 @@
     --muted: #94a3b8;
     --surface: rgba(30, 41, 59, 0.95);
     --border: #334155;
+  --progress: #60a5fa;
     --tile-filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
   }
 }
@@ -27,6 +29,7 @@
   --muted: #94a3b8;
   --surface: rgba(30, 41, 59, 0.95);
   --border: #334155;
+  --progress: #60a5fa;
   --tile-filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
 }
 
@@ -346,3 +349,22 @@ html, body {
 #panel .delay.ok { color: #2e7d32; }
 #panel .delay.warn { color: #ef6c00; }
 #panel .delay.bad { color: #d32f2f; }
+
+/* Flight progress bar (js/progress-bar.js) */
+#panel .fp { margin: 12px 0 4px; }
+#panel .fp-row { display: flex; align-items: center; gap: 10px; }
+#panel .fp-code { font-weight: 700; font-size: 17px; letter-spacing: 0.5px; min-width: 2.6em; }
+#panel .fp-code:last-child { text-align: right; }
+#panel .fp-bar { position: relative; flex: 1; min-width: 0; height: 28px; /* tall touch target, 8px track below */ }
+#panel .fp-bar::before { content: ""; position: absolute; left: 0; right: 0; top: 10px; height: 8px; border-radius: 4px; background: var(--border); }
+#panel .fp-fill { position: absolute; left: 0; top: 10px; height: 8px; border-radius: 4px; background: var(--progress); max-width: 100%; }
+#panel .fp-plane { position: absolute; top: 3px; margin-left: -11px; fill: var(--progress); stroke: var(--bg); stroke-width: 1; }
+#panel .fp-fill, #panel .fp-plane { transition: width 0.8s ease, left 0.8s ease; }
+#panel .fp-main { margin-top: 4px; font-size: 14px; font-variant-numeric: tabular-nums; }
+#panel .fp-sub { color: var(--muted); font-size: 12px; min-height: 1em; font-variant-numeric: tabular-nums; }
+#panel .fp[data-state="landed"] .fp-fill, #panel .fp[data-state="landed"] .fp-plane { --progress: #2e7d32; }
+#panel .fp[data-state="diverted"] { --progress: #d97706; }
+#panel .fp[data-state="cancelled"] { --progress: var(--muted); }
+#panel .fp[data-state="cancelled"] .fp-plane, #panel .fp[data-state="cancelled"] .fp-fill { opacity: 0.5; }
+#panel .fp[data-state="cancelled"] .fp-main { text-decoration: line-through; }
+@media (prefers-reduced-motion: reduce) { #panel .fp-fill, #panel .fp-plane { transition: none; } }

@@ -1,7 +1,7 @@
 // Service worker: makes the app installable and loadable offline, and always serves the newest files.
 // App files (same origin): network first, revalidated (no stale JS after a deploy); cache only as offline fallback.
 // Pinned CDN libraries: cache first. Live data, tiles and the Worker: not handled (always network).
-const CACHE = 'flights-v1';
+const CACHE = 'flights-v1.2';
 const CDN = 'https://unpkg.com/';
 
 self.addEventListener('install', () => self.skipWaiting());

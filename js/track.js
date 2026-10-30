@@ -91,5 +91,5 @@ export function createTrack(map) {
     draw();
   }
 
-  return { start, extend, setDestination, clear };
+  return { start, extend, setDestination, clear, points: () => points };
 }
