@@ -7,6 +7,7 @@ import { weatherText } from './forecast.js';
 import { decodeMetar, metarSummary } from './metar.js';
 import { flightNumbers } from './airlines.js';
 import { createTrack } from './track.js';
+import { createFlightProgress } from './progress-bar.js';
 import { liveAtcLink } from './atc.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
@@ -49,6 +50,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
   let last = null; // { ac, at }
   const track = createTrack(map);
   let ticker = null;
+  let progress = null;
 
   const sec = (name) => el.querySelector(`[data-sec="${name}"]`);
   const fill = (t, name, html) => { if (t === token && sec(name)) sec(name).innerHTML = html; };
@@ -66,6 +68,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
       </div>
       <div class="lost" data-sec="lost" hidden>Signal lost — showing the last known position</div>
       ${ac.callsign ? `<button type="button" class="panel-btn" data-share="${esc(ac.callsign)}">Share link</button>` : ''}
+      <div data-sec="progress"></div>
       <h3>Flight</h3><div data-sec="flight">Loading…</div><div data-sec="times"></div>
       <h3>Aircraft</h3><div data-sec="aircraft">Loading…</div>
       <h3>Live</h3><div data-sec="live">${liveHtml(ac, ac.seen)}</div>
@@ -85,6 +88,8 @@ export function initAircraftPanel(map, { onClose } = {}) {
       row('To', airportLabel(route?.destination)),
       route ? '<div class="note">Route from adsbdb by callsign; may differ from today\'s flight.</div>' : '',
     ].join(''));
+    if (t !== token) return;
+    progress?.setRoute(route);
     track.setDestination(route?.destination?.lat != null ? [route.destination.lat, route.destination.lon] : null);
     const atc = [liveAtcLink(route?.origin?.icao, `ATC ${route?.origin?.iata || route?.origin?.icao || ''}`),
       liveAtcLink(route?.destination?.icao, `ATC ${route?.destination?.iata || route?.destination?.icao || ''}`)].join('');
@@ -95,9 +100,11 @@ export function initAircraftPanel(map, { onClose } = {}) {
   // Scheduled vs actual times: only when a panel opens, never for every aircraft. Any failure → section stays empty.
   async function loadTimes(t, ac) {
     if (!ac.callsign) return;
+    let leg = null;
     let ft = null;
-    try { ft = flightTimes(pickFlight((await fetchFlightTimes(ac.callsign))?.flights)); } catch { return; }
-    if (!ft) return;
+    try { leg = pickFlight((await fetchFlightTimes(ac.callsign))?.flights); ft = flightTimes(leg); } catch { return; }
+    if (!ft || t !== token) return;
+    progress?.setLeg(leg, ft);
     const line = (label, e) => e && `<tr><td>${label}</td><td>${esc(hhmm(e.scheduled) || '–')}</td>
       <td>${e.time ? `${esc(hhmm(e.time))} <span class="kind">${e.kind === 'Actual' ? 'act' : 'est'}</span>` : '–'}</td>
       <td class="delay ${e.delayMin !== null ? delayClass(e.delayMin) : ''}">${esc(delayText(e.delayMin))}</td></tr>`;
@@ -158,7 +165,9 @@ export function initAircraftPanel(map, { onClose } = {}) {
     render(ac);
     showPanel();
     revealOnMap(map, [ac.lat, ac.lon]);
-    track.start(ac);
+    progress = createFlightProgress(sec('progress'), { getTrack: track.points });
+    progress.update(ac);
+    track.start(ac).then(() => { if (t === token) progress?.refresh(); }); // the history may move the plane
     ticker = setInterval(tick, 1000);
     loadFlight(t, ac);
     loadTimes(t, ac);
@@ -174,6 +183,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     const s = sec('live');
     if (s) s.innerHTML = liveHtml(ac, ac.seen);
     track.extend(ac);
+    progress?.update(ac);
   }
 
   function tick() {
@@ -189,6 +199,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     token++;
     releasePanel(yieldPanel);
     clearInterval(ticker);
+    progress = null;
     track.clear();
     el.innerHTML = '';
     hidePanel();

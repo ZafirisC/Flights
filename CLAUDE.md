@@ -24,6 +24,9 @@ Read both at the start of every session. Do only the phase you were asked to do.
 ## Running locally
 `python3 -m http.server 8000` in the repo root, then open `http://localhost:8000`.
 
+## Tests
+`node --test tests/progress.test.mjs` (Node 22+, no dependencies). Covers the pure code in `js/progress.js`.
+
 ## Reference
 `reference/standalone.html` is an earlier single-file prototype (OpenSky + Leaflet). Reference only;
 do not ship it and do not copy it wholesale.
