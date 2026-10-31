@@ -1,7 +1,7 @@
 // Live-source fallback chain and OpenSky parsing in js/api.js (fetch is mocked).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchAircraft, fetchFlightByCallsign, normaliseOpenSky, openSkyBox } from '../js/api.js';
+import { fetchAircraft, fetchFlightByCallsign, normaliseOpenSky, openSkyBox, OPENSKY_ENABLED } from '../js/api.js';
 
 const adsb = { ac: [{ hex: 'ABC123', flight: 'AEE123 ', lat: 40.5, lon: 22.9, alt_baro: 35000, gs: 450 }] };
 const sky = { time: 1000, states: [['4690de', 'OAL98   ', 'Greece', 995, 998, 22.9, 40.5, 1000, false, 100, 90, 5, null, 1010, '7700']] };
@@ -46,10 +46,10 @@ test('falls through blocked sources to the next one, then skips them while backe
   assert.match(calls[0], /airplaneslive/);
 });
 
-test('OpenSky is used for positions but never for callsign search', async () => {
+test('OpenSky is not called while switched off', async () => {
+  assert.equal(OPENSKY_ENABLED, false);
   const calls = mockFetch({ '/airplaneslive/': 502, '/opensky/': sky });
   await assert.rejects(fetchFlightByCallsign('OAL98'), /all sources failed/);
+  await assert.rejects(fetchAircraft(40.5, 22.9, 50), /all sources failed/);
   assert.ok(!calls.some((u) => u.includes('/opensky/')));
-  const list = await fetchAircraft(40.5, 22.9, 50);
-  assert.equal(list[0].callsign, 'OAL98');
 });

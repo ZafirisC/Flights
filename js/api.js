@@ -124,6 +124,7 @@ export async function fetchForecast(lat, lon, hours = 7) {
 // Live aircraft. Sources are tried in order; the first that answers wins:
 //   adsb.fi (1 req/s, no daily cap) → adsb.lol (500 requests/day per IP) → airplanes.live → OpenSky (free account,
 //   4000 credits/day via the Worker's OAuth secret; positions only, no callsign/registration search).
+// OpenSky is switched off for now (user decision 2026-10-31); set OPENSKY_ENABLED = true to add it back.
 // A source that is blocked (403), over quota (429) or failing is skipped for a while, so a dead source does not
 // slow every poll down.
 // Normalised to: { hex, callsign, lat, lon, alt (ft, null if unknown), onGround, gs (kt), track (deg), vrate (ft/min),
@@ -140,6 +141,8 @@ const v2 = (reg) => ({
   hex: (hex) => `/v2/hex/${encodeURIComponent(hex)}`,
 });
 
+export const OPENSKY_ENABLED = false;
+
 const LIVE = [
   { name: 'adsbFi', label: 'adsb.fi', parse: normaliseAdsb, path: {
     point: (lat, lon, r) => `/v3/lat/${lat}/lon/${lon}/dist/${r}`, ...v2('registration') } },
@@ -147,7 +150,7 @@ const LIVE = [
     point: (lat, lon, r) => `/v2/point/${lat}/${lon}/${r}`, ...v2('reg') } },
   { name: 'airplanesLive', label: 'airplanes.live', parse: normaliseAdsb, path: {
     point: (lat, lon, r) => `/v2/point/${lat}/${lon}/${r}`, ...v2('reg') } },
-  { name: 'opensky', label: 'OpenSky', parse: normaliseOpenSky, path: {
+  { name: 'opensky', label: 'OpenSky', off: !OPENSKY_ENABLED, parse: normaliseOpenSky, path: {
     point: (lat, lon, r) => `/states/all?${openSkyBox(+lat, +lon, r)}`,
     hex: (hex) => `/states/all?icao24=${encodeURIComponent(hex.toLowerCase())}`,
   } },
@@ -168,7 +171,7 @@ async function liveQuery(kind, ...args) {
   const tried = [];
   for (const src of LIVE) {
     const path = src.path[kind];
-    if (!path) continue; // this source cannot answer this kind of query
+    if (!path || src.off) continue; // switched off, or this source cannot answer this kind of query
     if (Date.now() < (backoffUntil[src.name] || 0)) {
       tried.push(`${src.label}: ${lastError[src.name]}`);
       continue;
