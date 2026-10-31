@@ -15,7 +15,12 @@ const ROUTES = [
   { prefix: '/adsbfi', upstream: 'https://opendata.adsb.fi/api',
     path: new RegExp(`^/(v3/lat/${NUM}/lon/${NUM}/dist/\\d{1,3}|v2/(callsign/[A-Za-z0-9]{1,8}|registration/[A-Za-z0-9-]{2,10}|hex/[0-9a-fA-F]{6}))$`), ttl: 5 },
   { prefix: '/airplaneslive', upstream: 'https://api.airplanes.live',
-    path: new RegExp(`^/v2/point/${NUM}/${NUM}/\\d{1,3}$`), ttl: 5 },
+    path: new RegExp(`^/v2/(point/${NUM}/${NUM}/\\d{1,3}|callsign/[A-Za-z0-9]{1,8}|reg/[A-Za-z0-9-]{2,10}|hex/[0-9a-fA-F]{6})$`), ttl: 5 },
+  // OpenSky state vectors: /states/all?lamin=&lomin=&lamax=&lomax= or ?icao24={hex}. Uses the OAuth client secret
+  // (OPENSKY_CLIENT_ID / OPENSKY_CLIENT_SECRET) when set, else anonymous (much smaller daily quota).
+  { prefix: '/opensky', upstream: 'https://opensky-network.org/api', path: /^\/states\/all$/,
+    query: ['lamin', 'lomin', 'lamax', 'lomax', 'icao24'], valid: /^(-?\d{1,3}(\.\d{1,4})?|[0-9a-f]{6})$/, ttl: 5,
+    auth: openSkyToken },
   // Position history (tar1090 traces): /data/traces/{last 2 hex chars}/trace_full_{hex}.json or trace_recent_{hex}.json
   { prefix: '/adsbtrace', upstream: 'https://adsb.lol',
     path: /^\/data\/traces\/[0-9a-f]{2}\/trace_(full|recent)_[0-9a-f]{6}\.json$/, ttl: 30 },
@@ -100,6 +105,30 @@ function json(text, origin) {
   return new Response(text, { headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) } });
 }
 
+// OpenSky OAuth2 client-credentials token, kept in instance memory until shortly before it expires (30 min).
+const OPENSKY_TOKEN_URL = 'https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token';
+let openSky = { token: null, until: 0 };
+async function openSkyToken(env) {
+  if (!env.OPENSKY_CLIENT_ID || !env.OPENSKY_CLIENT_SECRET) return null;
+  if (openSky.token && Date.now() < openSky.until) return openSky.token;
+  try {
+    const res = await fetch(OPENSKY_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials', client_id: env.OPENSKY_CLIENT_ID, client_secret: env.OPENSKY_CLIENT_SECRET,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    openSky = { token: data.access_token, until: Date.now() + ((data.expires_in || 1800) - 60) * 1000 };
+    return openSky.token;
+  } catch {
+    return null; // fall back to an anonymous request
+  }
+}
+
 const USER_AGENT = 'Flights PWA (https://github.com/ZafirisC/Flights)';
 
 function corsHeaders(origin) {
@@ -139,7 +168,9 @@ export default {
     const target = new URL(route.upstream + rest);
     for (const key of route.query || []) {
       const v = url.searchParams.get(key);
-      if (v !== null) target.searchParams.set(key, v);
+      if (v === null) continue;
+      if (route.valid && !route.valid.test(v)) return reply(400, { error: `Bad ${key}` }, origin);
+      target.searchParams.set(key, v);
     }
 
     // Edge cache shared by all users. Note: a no-op on *.workers.dev (works only on a custom domain).
@@ -149,13 +180,17 @@ export default {
     if (!res) {
       let upstream;
       try {
+        const headers = { 'User-Agent': USER_AGENT, Accept: 'application/json' };
+        const token = route.auth && await route.auth(env);
+        if (token) headers.Authorization = `Bearer ${token}`;
         upstream = await fetch(target, {
-          headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+          headers,
           signal: AbortSignal.timeout(10000),
         });
       } catch (err) {
         return reply(502, { error: `Upstream unreachable: ${err.message}` }, origin);
       }
+      if (upstream.status === 401 && route.auth) openSky = { token: null, until: 0 }; // token revoked: get a new one
       res = new Response(upstream.body, upstream);
       res.headers.delete('Set-Cookie');
       if (upstream.ok) {

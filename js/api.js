@@ -10,7 +10,7 @@ export function sourcesFor(worker) {
     airplanesLive: worker ? `${worker}/airplaneslive` : 'https://api.airplanes.live',
     adsbTrace: worker ? `${worker}/adsbtrace` : 'https://adsb.lol',
     rainviewer: 'https://api.rainviewer.com',
-    opensky: 'https://opensky-network.org/api',
+    opensky: worker ? `${worker}/opensky` : 'https://opensky-network.org/api',
     adsbdb: 'https://api.adsbdb.com/v0',
     planespotters: 'https://api.planespotters.net/pub',
     aviationWeather: worker ? `${worker}/awc` : 'https://aviationweather.gov/api/data',
@@ -121,44 +121,70 @@ export async function fetchForecast(lat, lon, hours = 7) {
   }));
 }
 
-// Live aircraft. Primary: adsb.fi (1 req/s, no daily cap). Fallback: adsb.lol (500 requests/day per IP, which a
-// shared Worker IP exhausts quickly). A source that answers 429 is skipped for a while.
+// Live aircraft. Sources are tried in order; the first that answers wins:
+//   adsb.fi (1 req/s, no daily cap) → adsb.lol (500 requests/day per IP) → airplanes.live → OpenSky (free account,
+//   4000 credits/day via the Worker's OAuth secret; positions only, no callsign/registration search).
+// A source that is blocked (403), over quota (429) or failing is skipped for a while, so a dead source does not
+// slow every poll down.
 // Normalised to: { hex, callsign, lat, lon, alt (ft, null if unknown), onGround, gs (kt), track (deg), vrate (ft/min),
 //   squawk, seen (s), reg, type }
-export const MAX_RADIUS_NM = 250; // limit of both sources
+export const MAX_RADIUS_NM = 250; // limit of the readsb sources
 
-const BACKOFF_MS = 5 * 60000;
+const BACKOFF_MS = { 403: 10 * 60000, 429: 5 * 60000, other: 60000 };
 const backoffUntil = {}; // source name → time
+const lastError = {}; // source name → short reason, for the status message
+
+const v2 = (reg) => ({
+  callsign: (cs) => `/v2/callsign/${encodeURIComponent(cs)}`,
+  reg: (r) => `/v2/${reg}/${encodeURIComponent(r)}`,
+  hex: (hex) => `/v2/hex/${encodeURIComponent(hex)}`,
+});
 
 const LIVE = [
-  { name: 'adsbFi', path: {
-    point: (lat, lon, r) => `/v3/lat/${lat}/lon/${lon}/dist/${r}`,
-    callsign: (cs) => `/v2/callsign/${encodeURIComponent(cs)}`,
-    reg: (reg) => `/v2/registration/${encodeURIComponent(reg)}`,
-    hex: (hex) => `/v2/hex/${encodeURIComponent(hex)}`,
-  } },
-  { name: 'adsbLol', path: {
-    point: (lat, lon, r) => `/v2/point/${lat}/${lon}/${r}`,
-    callsign: (cs) => `/v2/callsign/${encodeURIComponent(cs)}`,
-    reg: (reg) => `/v2/reg/${encodeURIComponent(reg)}`,
-    hex: (hex) => `/v2/hex/${encodeURIComponent(hex)}`,
+  { name: 'adsbFi', label: 'adsb.fi', parse: normaliseAdsb, path: {
+    point: (lat, lon, r) => `/v3/lat/${lat}/lon/${lon}/dist/${r}`, ...v2('registration') } },
+  { name: 'adsbLol', label: 'adsb.lol', parse: normaliseAdsb, path: {
+    point: (lat, lon, r) => `/v2/point/${lat}/${lon}/${r}`, ...v2('reg') } },
+  { name: 'airplanesLive', label: 'airplanes.live', parse: normaliseAdsb, path: {
+    point: (lat, lon, r) => `/v2/point/${lat}/${lon}/${r}`, ...v2('reg') } },
+  { name: 'opensky', label: 'OpenSky', parse: normaliseOpenSky, path: {
+    point: (lat, lon, r) => `/states/all?${openSkyBox(+lat, +lon, r)}`,
+    hex: (hex) => `/states/all?icao24=${encodeURIComponent(hex.toLowerCase())}`,
   } },
 ];
 
+// Bounding box around a circle. OpenSky charges credits by area (≤ 25 sq° = 1, ≤ 100 = 2, ≤ 400 = 3), so the
+// box is the circle's square, rounded to 0.1° to keep requests comparable.
+export function openSkyBox(lat, lon, radiusNm) {
+  const dLat = radiusNm / 60;
+  const dLon = radiusNm / (60 * Math.max(0.1, Math.cos((lat * Math.PI) / 180)));
+  const f = (n, lo, hi) => Math.min(hi, Math.max(lo, n)).toFixed(1);
+  return `lamin=${f(lat - dLat, -90, 90)}&lomin=${f(lon - dLon, -180, 180)}`
+    + `&lamax=${f(lat + dLat, -90, 90)}&lomax=${f(lon + dLon, -180, 180)}`;
+}
+
 // First source that answers; 404 counts as "not found" (empty list), not as a failure.
 async function liveQuery(kind, ...args) {
-  let lastErr = new Error('No live source available');
+  const tried = [];
   for (const src of LIVE) {
-    if (Date.now() < (backoffUntil[src.name] || 0)) continue;
+    const path = src.path[kind];
+    if (!path) continue; // this source cannot answer this kind of query
+    if (Date.now() < (backoffUntil[src.name] || 0)) {
+      tried.push(`${src.label}: ${lastError[src.name]}`);
+      continue;
+    }
     try {
-      return normaliseAdsb(await getJSON(SOURCES[src.name] + src.path[kind](...args)));
+      const list = src.parse(await getJSON(SOURCES[src.name] + path(...args)));
+      delete lastError[src.name];
+      return list;
     } catch (err) {
       if (err.status === 404) return [];
-      if (err.status === 429) backoffUntil[src.name] = Date.now() + BACKOFF_MS;
-      lastErr = err;
+      lastError[src.name] = err.status ? `HTTP ${err.status}` : (err.name === 'AbortError' ? 'timeout' : 'network error');
+      backoffUntil[src.name] = Date.now() + (BACKOFF_MS[err.status] || BACKOFF_MS.other);
+      tried.push(`${src.label}: ${lastError[src.name]}`);
     }
   }
-  throw lastErr;
+  throw new Error(tried.length ? `all sources failed – ${tried.join(', ')}` : 'No live source available');
 }
 
 export async function fetchAircraft(lat, lon, radiusNm) {
@@ -217,7 +243,7 @@ export async function fetchRadarFrame() {
   return { tiles: `${data.host}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`, time: frame.time };
 }
 
-// adsb.fi and adsb.lol both use the readsb / ADSBExchange v2 format (list in `ac`, or `aircraft` in some versions).
+// adsb.fi, adsb.lol and airplanes.live all use the readsb / ADSBExchange v2 format (list in `ac`, or `aircraft` in some versions).
 function normaliseAdsb(data) {
   return (data?.ac || data?.aircraft || [])
     .filter((a) => a.hex && typeof a.lat === 'number' && typeof a.lon === 'number')
@@ -236,6 +262,33 @@ function normaliseAdsb(data) {
       reg: a.r || null,
       type: a.t || null,
     }));
+}
+
+// OpenSky state vectors: { time, states: [[icao24, callsign, country, timePos, lastContact, lon, lat, baroAlt (m),
+//   onGround, velocity (m/s), track, vertRate (m/s), sensors, geoAlt (m), squawk, spi, posSource], ...] }.
+const FT_PER_M = 3.28084;
+export function normaliseOpenSky(data) {
+  const now = data?.time ?? Date.now() / 1000;
+  return (data?.states || [])
+    .filter((s) => s?.[0] && typeof s[5] === 'number' && typeof s[6] === 'number')
+    .map((s) => {
+      const alt = s[7] ?? s[13];
+      return {
+        hex: String(s[0]).toLowerCase(),
+        callsign: (s[1] || '').trim() || null,
+        lat: s[6],
+        lon: s[5],
+        alt: s[8] || typeof alt !== 'number' ? null : Math.round(alt * FT_PER_M),
+        onGround: !!s[8],
+        gs: typeof s[9] === 'number' ? Math.round(s[9] * 1.94384) : null,
+        track: s[10] ?? null,
+        vrate: typeof s[11] === 'number' ? Math.round(s[11] * FT_PER_M * 60) : null,
+        squawk: s[14] ?? null,
+        seen: typeof s[4] === 'number' ? Math.max(0, Math.round(now - s[4])) : null,
+        reg: null,
+        type: null,
+      };
+    });
 }
 
 // Diagnostic request for tools/api-check.html: never throws, reports what the browser saw.

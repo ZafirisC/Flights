@@ -6,7 +6,8 @@ CORS proxy for the sources Phase 2 found blocked. Only these routes are forwarde
 |---|---|---|
 | `/adsbfi/v3/lat/{lat}/lon/{lon}/dist/{nm}`, `/adsbfi/v2/callsign/{cs}`, `/adsbfi/v2/registration/{reg}`, `/adsbfi/v2/hex/{hex}` | `https://opendata.adsb.fi/api` | 5 s |
 | `/adsblol/v2/point/{lat}/{lon}/{radius_nm}`, `/adsblol/v2/callsign/{cs}`, `/adsblol/v2/reg/{reg}` | `https://api.adsb.lol` | 5 s |
-| `/airplaneslive/v2/point/{lat}/{lon}/{radius_nm}` | `https://api.airplanes.live` | 5 s |
+| `/airplaneslive/v2/point/{lat}/{lon}/{radius_nm}`, `/v2/callsign/{cs}`, `/v2/reg/{reg}`, `/v2/hex/{hex}` | `https://api.airplanes.live` | 5 s |
+| `/opensky/states/all?lamin=&lomin=&lamax=&lomax=` or `?icao24={hex}` | `https://opensky-network.org/api`, OAuth with secrets `OPENSKY_CLIENT_ID` / `OPENSKY_CLIENT_SECRET` if set | 5 s |
 | `/adsbtrace/data/traces/{xx}/trace_full_{hex}.json` (or `trace_recent_`) | `https://adsb.lol` | 30 s |
 | `/awc/metar?ids=&format=` and `/awc/taf?ids=&format=` | `https://aviationweather.gov/api/data` | 5 min |
 | `/flighttimes/{callsign}` | AeroDataBox (RapidAPI), needs secret `AERODATABOX_KEY`; answer trimmed | 15 min (1 h pause after 401/403/429) |
@@ -25,6 +26,14 @@ Without it `/flighttimes` answers 503 and the app simply hides the times.
    `flights-times`. Then `flights-proxy` → **Settings** → **Bindings** → **Add** → **KV namespace**,
    variable name `TIMES_CACHE`, namespace `flights-times` → **Deploy**.
    (The Cache API does not work on `*.workers.dev`, so without KV each Worker instance only remembers answers in memory.)
+
+## Add OpenSky (extra live-position source)
+1. opensky-network.org → **Register** (free) → log in → **Account** → **API Client** → create a client.
+   Copy its `client_id` and `client_secret`.
+2. Cloudflare → `flights-proxy` → **Settings** → **Variables and Secrets** → add two **Secrets**:
+   `OPENSKY_CLIENT_ID` and `OPENSKY_CLIENT_SECRET` → **Deploy**.
+3. Free account: 4000 credits/day; one map poll costs 1–3 credits by area (≈ 2 at full zoom-out). Without the secrets
+   the route still works anonymously, but with a much smaller quota shared by everyone on the Worker's IP.
 
 ## Deploy (dashboard, no install)
 1. dash.cloudflare.com → **Workers & Pages** → **Create** → **Create Worker** → name it `flights-proxy` → **Deploy**.

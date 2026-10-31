@@ -213,6 +213,17 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   not departed, landed, diverted, cancelled). Map tiles were blocked in the sandbox, so the map itself was not checked.
 - Open: not tried with real data (live positions are still unsolved, see above); diversion airport unavailable.
 
+- **More live-position sources (2026-10-31):** chain is now adsb.fi → adsb.lol → airplanes.live → **OpenSky** (new).
+  airplanes.live is in the chain again (callsign/reg/hex routes added to the Worker) in case it stops blocking the Worker.
+  OpenSky: new Worker route `/opensky/states/all` (bbox or `icao24`), OAuth2 client-credentials token from Worker secrets
+  `OPENSKY_CLIENT_ID` / `OPENSKY_CLIENT_SECRET` (anonymous without them); viewport circle → bounding box rounded to 0.1°;
+  units converted (m → ft, m/s → kt, m/s → ft/min); no reg/type (adsbdb fills these in the panel). OpenSky cannot search by
+  callsign/registration, so search and share links still need one of the readsb sources. Each failing source is now skipped
+  for a while (403: 10 min, 429: 5 min, other errors: 1 min) and the status message names each source's error.
+  Tests: `tests/live-sources.test.mjs`. **Not verified live** (sandbox cannot reach any source): needs Worker redeploy +
+  OpenSky secrets, then `tools/api-check.html?worker=<url>` row "OpenSky (via Worker)". Risk: OpenSky may block
+  Cloudflare IPs too; if so, option (B) — a proxy on a non-Cloudflare host — is what is left.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
