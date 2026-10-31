@@ -234,8 +234,12 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   From home OpenSky answers at once; "OpenSky (direct)" check row = blocked by CORS. So a relay on a non-Cloudflare host
   is needed. Prepared (not deployed): `RELAY_URL` in `js/api.js` (empty = off) sends live positions, OpenSky and traces
   through the relay, the rest stays on the Worker; check page takes `?relay=<url>`; `worker.js` skips the Cloudflare
-  edge cache when `caches.default` is missing, so it can run elsewhere. Host under discussion: Papaki (Greek web
-  hosting, PHP relay) or Deno Deploy (JS, same worker.js).
+  edge cache when `caches.default` is missing, so it can run elsewhere.
+  Host chosen (user, 2026-10-31): **Google Apps Script** (free, no card; Papaki and Deno Deploy considered).
+  `relay/apps-script/Code.gs` = same routes/allowlist as the Worker + `/opensky-check`; OpenSky secrets in Script
+  properties, token in CacheService. Apps Script cannot set a status, so failures are 200 + `{relayError, status}`;
+  `getJSON()` turns that into a normal HTTP error and the check page shows it. Setup: `relay/README.md`.
+  Tested only with a mocked Apps Script environment. Unknown: whether the sources answer Google's servers.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.

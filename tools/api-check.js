@@ -89,6 +89,7 @@ function card(name) {
 function verdict(name, r) {
   if (!r.cors && r.cors !== null) return { ok: false, short: `❌ ${r.error}` };
   if (r.error) return { ok: false, short: `❌ ${r.error}` };
+  if (r.body?.relayError) return { ok: false, short: `⚠️ Relay: ${r.body.error}, ${r.ms} ms` };
   if (r.status >= 200 && r.status < 300) {
     const n = count(name, r.body);
     return { ok: true, short: `✅ ${r.status}${n !== null ? `, ${n} aircraft` : ''}, ${r.ms} ms` };

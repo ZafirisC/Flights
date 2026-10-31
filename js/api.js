@@ -2,8 +2,8 @@
 // Each source has a base URL. Sources that block CORS (Phase 2) go through the Cloudflare Worker
 // (worker/worker.js) once WORKER_URL is set.
 export const WORKER_URL = 'https://flights-proxy.zkriaris.workers.dev';
-// Same proxy code on a non-Cloudflare host (relay/README.md), because the live-position sources and OpenSky refuse or
-// ignore Cloudflare. When set, live positions and traces go through it; everything else stays on the Worker.
+// Relay on a non-Cloudflare host (relay/README.md: Google Apps Script web app, URL ending in /exec), because the
+// live-position sources and OpenSky refuse or ignore Cloudflare. When set, live positions and traces go through it; everything else stays on the Worker.
 export const RELAY_URL = '';
 
 export function sourcesFor(worker, relay = RELAY_URL) {
@@ -30,7 +30,10 @@ export async function getJSON(url, { timeout = 10000 } = {}) {
   try {
     const res = await fetch(url, { signal: ctrl.signal });
     if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
-    return await res.json();
+    const data = await res.json();
+    // The Apps Script relay always answers 200; it reports upstream failures in the body.
+    if (data?.relayError) throw Object.assign(new Error(`HTTP ${data.status}`), { status: data.status });
+    return data;
   } finally {
     clearTimeout(timer);
   }

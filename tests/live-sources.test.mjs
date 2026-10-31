@@ -54,3 +54,11 @@ test('OpenSky is used for positions but never for callsign search', async () => 
   const list = await fetchAircraft(40.5, 22.9, 50);
   assert.equal(list[0].callsign, 'OAL98');
 });
+
+test('a relay error inside a 200 answer counts as a failure of that source', async () => {
+  const api = await import('../js/api.js?fresh'); // own module copy: no backoff left over from the tests above
+  const calls = mockFetch({ '/adsbfi/': { relayError: true, status: 403, error: 'Upstream HTTP 403' }, '/adsblol/': adsb });
+  const found = await api.fetchFlightByCallsign('AEE123');
+  assert.equal(found.hex, 'abc123');
+  assert.deepEqual(calls.map((u) => u.match(/\/(adsbfi|adsblol)\//)[1]), ['adsbfi', 'adsblol']);
+});
