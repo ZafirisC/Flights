@@ -11,6 +11,7 @@ CORS proxy for the sources Phase 2 found blocked. Only these routes are forwarde
 | `/adsbtrace/data/traces/{xx}/trace_full_{hex}.json` (or `trace_recent_`) | `https://adsb.lol` | 30 s |
 | `/awc/metar?ids=&format=` and `/awc/taf?ids=&format=` | `https://aviationweather.gov/api/data` | 5 min |
 | `/flighttimes/{callsign}` | AeroDataBox (RapidAPI), needs secret `AERODATABOX_KEY`; answer trimmed | 15 min (1 h pause after 401/403/429) |
+| `/opensky-check` | Diagnostic: secrets set? OpenSky login and data request result + time (no secrets shown; costs 1 credit) | — |
 | `/health` | — | — |
 
 Allowed origins: `https://zafirisc.github.io`, `http://localhost:8000` (edit `ALLOWED_ORIGINS` in `worker.js`).
