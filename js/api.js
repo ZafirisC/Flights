@@ -2,15 +2,19 @@
 // Each source has a base URL. Sources that block CORS (Phase 2) go through the Cloudflare Worker
 // (worker/worker.js) once WORKER_URL is set.
 export const WORKER_URL = 'https://flights-proxy.zkriaris.workers.dev';
+// Same proxy code on a non-Cloudflare host (relay/README.md), because the live-position sources and OpenSky refuse or
+// ignore Cloudflare. When set, live positions and traces go through it; everything else stays on the Worker.
+export const RELAY_URL = '';
 
-export function sourcesFor(worker) {
+export function sourcesFor(worker, relay = RELAY_URL) {
+  const live = relay || worker;
   return {
-    adsbFi: worker ? `${worker}/adsbfi` : 'https://opendata.adsb.fi/api',
-    adsbLol: worker ? `${worker}/adsblol` : 'https://api.adsb.lol',
-    airplanesLive: worker ? `${worker}/airplaneslive` : 'https://api.airplanes.live',
-    adsbTrace: worker ? `${worker}/adsbtrace` : 'https://adsb.lol',
+    adsbFi: live ? `${live}/adsbfi` : 'https://opendata.adsb.fi/api',
+    adsbLol: live ? `${live}/adsblol` : 'https://api.adsb.lol',
+    airplanesLive: live ? `${live}/airplaneslive` : 'https://api.airplanes.live',
+    adsbTrace: live ? `${live}/adsbtrace` : 'https://adsb.lol',
     rainviewer: 'https://api.rainviewer.com',
-    opensky: worker ? `${worker}/opensky` : 'https://opensky-network.org/api',
+    opensky: live ? `${live}/opensky` : 'https://opensky-network.org/api',
     adsbdb: 'https://api.adsbdb.com/v0',
     planespotters: 'https://api.planespotters.net/pub',
     aviationWeather: worker ? `${worker}/awc` : 'https://aviationweather.gov/api/data',

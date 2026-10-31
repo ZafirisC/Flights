@@ -231,7 +231,11 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   secrets / login / data separately, 15 s limits) and shorter Worker timeouts (login 4 s, data 5 s).
   `/opensky-check` result: secrets set, **login timeout and data timeout (15 s each)**. Neither OpenSky host (auth, API)
   answers the Worker, so OpenSky very likely drops Cloudflare traffic, like adsb.fi and airplanes.live.
-  Next: user opens the OpenSky URL from home to confirm OpenSky itself is up; then decide on a non-Cloudflare proxy.
+  From home OpenSky answers at once; "OpenSky (direct)" check row = blocked by CORS. So a relay on a non-Cloudflare host
+  is needed. Prepared (not deployed): `RELAY_URL` in `js/api.js` (empty = off) sends live positions, OpenSky and traces
+  through the relay, the rest stays on the Worker; check page takes `?relay=<url>`; `worker.js` skips the Cloudflare
+  edge cache when `caches.default` is missing, so it can run elsewhere. Host under discussion: Papaki (Greek web
+  hosting, PHP relay) or Deno Deploy (JS, same worker.js).
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.

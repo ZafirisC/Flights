@@ -1,4 +1,4 @@
-// Cloudflare Worker: CORS proxy for the sources that block browser access (PROGRESS.md, Phase 2).
+// Cloudflare Worker: CORS proxy (also runs unchanged on Deno Deploy through relay/main.js) for the sources that block browser access (PROGRESS.md, Phase 2).
 // Only the routes below are forwarded; anything else is 404, so this is not an open proxy.
 
 const ALLOWED_ORIGINS = [
@@ -209,10 +209,10 @@ export default {
       target.searchParams.set(key, v);
     }
 
-    // Edge cache shared by all users. Note: a no-op on *.workers.dev (works only on a custom domain).
-    const cache = caches.default;
+    // Edge cache shared by all users. Note: a no-op on *.workers.dev (works only on a custom domain); absent on Deno.
+    const cache = globalThis.caches?.default;
     const cacheKey = new Request(target.toString());
-    let res = await cache.match(cacheKey);
+    let res = cache && await cache.match(cacheKey);
     if (!res) {
       let upstream;
       try {
@@ -231,7 +231,7 @@ export default {
       res.headers.delete('Set-Cookie');
       if (upstream.ok) {
         res.headers.set('Cache-Control', `public, max-age=${route.ttl}`);
-        ctx.waitUntil(cache.put(cacheKey, res.clone()));
+        if (cache) ctx.waitUntil(cache.put(cacheKey, res.clone()));
       }
     }
 

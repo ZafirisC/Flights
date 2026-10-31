@@ -1,9 +1,12 @@
 // Phase 2: checks every data source in SPEC §2 from this browser (CORS, status, shape, rate limits).
-import { WORKER_URL, sourcesFor, probe } from '../js/api.js';
+import { WORKER_URL, RELAY_URL, sourcesFor, probe } from '../js/api.js';
 
 // ?worker=https://flights-proxy.<name>.workers.dev tests the Worker before WORKER_URL is set in api.js.
 const worker = (new URLSearchParams(location.search).get('worker') || WORKER_URL).replace(/\/+$/, '');
-const SOURCES = sourcesFor(worker);
+// ?relay=<url> tests the non-Cloudflare relay (relay/README.md) for live positions, OpenSky and traces.
+const relay = (new URLSearchParams(location.search).get('relay') || RELAY_URL).replace(/\/+$/, '');
+const SOURCES = sourcesFor(worker, relay);
+const via = relay ? 'via relay' : 'via Worker';
 
 const LAT = 40.64, LON = 22.94, RADIUS_NM = 100; // Thessaloniki
 const ICAO = 'LGTS';
@@ -16,16 +19,16 @@ const browser = /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone Safari'
 const sample = { ...FALLBACK, fromLive: false };
 
 const CHECKS = [
-  { name: 'adsb.fi (via Worker)', live: true, url: () => `${SOURCES.adsbFi}/v3/lat/${LAT}/lon/${LON}/dist/${RADIUS_NM}` },
+  { name: `adsb.fi (${via})`, live: true, url: () => `${SOURCES.adsbFi}/v3/lat/${LAT}/lon/${LON}/dist/${RADIUS_NM}` },
   { name: 'adsb.fi (direct)', live: true, url: () => `https://opendata.adsb.fi/api/v3/lat/${LAT}/lon/${LON}/dist/${RADIUS_NM}` },
-  { name: 'adsb.lol', live: true, url: () => `${SOURCES.adsbLol}/v2/point/${LAT}/${LON}/${RADIUS_NM}` },
-  { name: 'airplanes.live', live: true, url: () => `${SOURCES.airplanesLive}/v2/point/${LAT}/${LON}/${RADIUS_NM}` },
-  { name: 'OpenSky (via Worker)', live: true,
+  { name: `adsb.lol (${via})`, live: true, url: () => `${SOURCES.adsbLol}/v2/point/${LAT}/${LON}/${RADIUS_NM}` },
+  { name: `airplanes.live (${via})`, live: true, url: () => `${SOURCES.airplanesLive}/v2/point/${LAT}/${LON}/${RADIUS_NM}` },
+  { name: `OpenSky (${via})`, live: true,
     url: () => `${SOURCES.opensky}/states/all?lamin=${LAT - 1.5}&lomin=${LON - 2}&lamax=${LAT + 1.5}&lomax=${LON + 2}` },
   { name: 'OpenSky (direct)', live: true,
     url: () => `https://opensky-network.org/api/states/all?lamin=${LAT - 1.5}&lomin=${LON - 2}&lamax=${LAT + 1.5}&lomax=${LON + 2}` },
   // v1.1 Phase 2: position history for the flight track, and radar tiles index. Expect 404 for a hex with no trace today.
-  { name: 'adsb.lol trace (via Worker)', url: () => `${SOURCES.adsbTrace}/data/traces/${sample.hex.slice(-2)}/trace_full_${sample.hex}.json` },
+  { name: `adsb.lol trace (${via})`, url: () => `${SOURCES.adsbTrace}/data/traces/${sample.hex.slice(-2)}/trace_full_${sample.hex}.json` },
   { name: 'RainViewer', url: () => `${SOURCES.rainviewer}/public/weather-maps.json` },
   { name: 'adsbdb callsign', url: () => `${SOURCES.adsbdb}/callsign/${sample.callsign}` },
   { name: 'adsbdb aircraft', url: () => `${SOURCES.adsbdb}/aircraft/${sample.hex}` },
@@ -37,7 +40,7 @@ const CHECKS = [
 ];
 
 const $ = (id) => document.getElementById(id);
-$('env').textContent = `${browser} · Worker: ${worker || 'none'} · ${navigator.userAgent}`;
+$('env').textContent = `${browser} · Worker: ${worker || 'none'} · Relay: ${relay || 'none'} · ${navigator.userAgent}`;
 
 // One-line description of the JSON structure: top-level keys, types and array lengths.
 function shape(body) {
@@ -127,7 +130,7 @@ async function runAll() {
     ? `Lookups used live aircraft ${sample.callsign} / ${sample.hex}.`
     : `No live aircraft found; lookups used fallback ${sample.callsign} / ${sample.hex}.`;
   $('summary').value = [
-    `${browser} — ${new Date().toISOString()} — Worker: ${worker || 'none'}`,
+    `${browser} — ${new Date().toISOString()} — Worker: ${worker || 'none'} · Relay: ${relay || 'none'}`,
     sampleNote,
     '| Source | Result | Notes |',
     '|---|---|---|',
