@@ -124,7 +124,7 @@ export async function fetchForecast(lat, lon, hours = 7) {
 // Live aircraft. Sources are tried in order; the first that answers wins:
 //   adsb.fi (1 req/s, no daily cap) → adsb.lol (500 requests/day per IP) → airplanes.live → OpenSky (free account,
 //   4000 credits/day via the Worker's OAuth secret; positions only, no callsign/registration search).
-// OpenSky is switched off for now (user decision 2026-10-31); set OPENSKY_ENABLED = true to add it back.
+// OPENSKY_ENABLED = false takes OpenSky out of the chain (code and Worker route stay).
 // A source that is blocked (403), over quota (429) or failing is skipped for a while, so a dead source does not
 // slow every poll down.
 // Normalised to: { hex, callsign, lat, lon, alt (ft, null if unknown), onGround, gs (kt), track (deg), vrate (ft/min),
@@ -141,7 +141,7 @@ const v2 = (reg) => ({
   hex: (hex) => `/v2/hex/${encodeURIComponent(hex)}`,
 });
 
-export const OPENSKY_ENABLED = false;
+export const OPENSKY_ENABLED = true;
 
 const LIVE = [
   { name: 'adsbFi', label: 'adsb.fi', parse: normaliseAdsb, path: {

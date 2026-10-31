@@ -224,8 +224,9 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   OpenSky secrets, then `tools/api-check.html?worker=<url>` row "OpenSky (via Worker)". Risk: OpenSky may block
   Cloudflare IPs too; if so, option (B) — a proxy on a non-Cloudflare host — is what is left.
   **OpenSky switched off (user, 2026-10-31: service not running).** `OPENSKY_ENABLED = false` in `js/api.js`; code,
-  Worker route and tests kept, so turning it back on is that one flag + the footer credit. Live chain today:
-  adsb.fi → adsb.lol → airplanes.live.
+  Worker route and tests kept, so turning it back on is that one flag + the footer credit.
+  **OpenSky back on (user, 2026-10-31: service running, account made).** Live chain: adsb.fi → adsb.lol → airplanes.live
+  → OpenSky. Awaiting: Worker secrets + redeploy + check page.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.

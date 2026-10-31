@@ -46,10 +46,11 @@ test('falls through blocked sources to the next one, then skips them while backe
   assert.match(calls[0], /airplaneslive/);
 });
 
-test('OpenSky is not called while switched off', async () => {
-  assert.equal(OPENSKY_ENABLED, false);
+test('OpenSky is used for positions but never for callsign search', async () => {
+  assert.equal(OPENSKY_ENABLED, true);
   const calls = mockFetch({ '/airplaneslive/': 502, '/opensky/': sky });
   await assert.rejects(fetchFlightByCallsign('OAL98'), /all sources failed/);
-  await assert.rejects(fetchAircraft(40.5, 22.9, 50), /all sources failed/);
   assert.ok(!calls.some((u) => u.includes('/opensky/')));
+  const list = await fetchAircraft(40.5, 22.9, 50);
+  assert.equal(list[0].callsign, 'OAL98');
 });

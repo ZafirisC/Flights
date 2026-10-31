@@ -26,7 +26,7 @@ Read both at the start of every session. Do only the phase you were asked to do.
 
 ## Tests
 `node --test tests/*.mjs` (Node 22+, no dependencies). Covers the pure code in `js/progress.js` and the live-source
-fallback chain / OpenSky parsing (OpenSky currently switched off) in `js/api.js` (fetch mocked).
+fallback chain / OpenSky parsing in `js/api.js` (fetch mocked).
 
 ## Reference
 `reference/standalone.html` is an earlier single-file prototype (OpenSky + Leaflet). Reference only;
