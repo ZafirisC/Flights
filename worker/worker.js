@@ -118,7 +118,7 @@ async function openSkyToken(env) {
       body: new URLSearchParams({
         grant_type: 'client_credentials', client_id: env.OPENSKY_CLIENT_ID, client_secret: env.OPENSKY_CLIENT_SECRET,
       }),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -127,6 +127,41 @@ async function openSkyToken(env) {
   } catch {
     return null; // fall back to an anonymous request
   }
+}
+
+// Diagnostic for /opensky-check: which step fails (secrets, login, data) and how long each took. No secrets in the answer.
+async function openSkyCheck(env) {
+  const step = async (fn) => {
+    const t = Date.now();
+    try {
+      const res = await fn();
+      return { result: res.ok ? 'ok' : `HTTP ${res.status}`, ms: Date.now() - t };
+    } catch (err) {
+      return { result: err.name === 'TimeoutError' ? 'timeout' : `error: ${err.message}`, ms: Date.now() - t };
+    }
+  };
+  const out = { secrets: !!(env.OPENSKY_CLIENT_ID && env.OPENSKY_CLIENT_SECRET) };
+  let token = null;
+  if (out.secrets) {
+    out.login = await step(async () => {
+      const res = await fetch(OPENSKY_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials', client_id: env.OPENSKY_CLIENT_ID, client_secret: env.OPENSKY_CLIENT_SECRET,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (res.ok) token = (await res.json()).access_token;
+      return res;
+    });
+  }
+  // Small box (1 credit) around Thessaloniki.
+  out.data = await step(() => fetch('https://opensky-network.org/api/states/all?lamin=40&lomin=22&lamax=41&lomax=23', {
+    headers: { 'User-Agent': USER_AGENT, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    signal: AbortSignal.timeout(15000),
+  }));
+  return out;
 }
 
 const USER_AGENT = 'Flights PWA (https://github.com/ZafirisC/Flights)';
@@ -157,6 +192,7 @@ export default {
 
     const url = new URL(request.url);
     if (url.pathname === '/' || url.pathname === '/health') return reply(200, { ok: true }, origin);
+    if (url.pathname === '/opensky-check') return reply(200, await openSkyCheck(env), origin);
 
     const times = url.pathname.match(/^\/flighttimes\/([^/]+)$/);
     if (times) return flightTimes(times[1].toUpperCase(), env, ctx, origin);
@@ -185,7 +221,7 @@ export default {
         if (token) headers.Authorization = `Bearer ${token}`;
         upstream = await fetch(target, {
           headers,
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(route.auth ? 5000 : 8000), // under the app's 10 s, login included
         });
       } catch (err) {
         return reply(502, { error: `Upstream unreachable: ${err.message}` }, origin);
