@@ -233,6 +233,19 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   answers the Worker, so OpenSky very likely drops Cloudflare traffic, like adsb.fi and airplanes.live.
   Next: user opens the OpenSky URL from home to confirm OpenSky itself is up; then decide on a non-Cloudflare proxy.
 
+## Airport cameras — research only (2026-11-04), no code
+Web search only; the session could not open api.windy.com or aviationwx.org (not in the allowed network domains), so
+the points marked "unverified" still need a check with those hosts allowed.
+- **Windy Webcams API** (api.windy.com/webcams): global (~65 000 cams), "nearby" search by lat/lon/radius, no ICAO filter,
+  so airports are matched by coordinates. Needs an API key, so it would have to sit in the Worker. Free tier: image URLs
+  expire after ~10–15 min, link/embed allowed, attribution and a link to windy.com required. Unverified: key cost, CORS.
+- **AviationWX.org**: free aviation weathercam network with a public API keyed by airport code (example `kspb`); mostly
+  small US airfields; coverage of Greece unverified.
+- **FAA WeatherCams** (weathercams.faa.gov): US/Canada only, no documented API, so not usable for LGTS.
+- Search found no webcam for Thessaloniki (LGTS). Large-airport webcams are mostly on spotter sites with no API.
+- Suggested next step if wanted: a link-only "Webcams" button (like `js/atc.js`) to a Windy map centred on the airport,
+  with embedding as a later step.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
