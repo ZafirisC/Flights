@@ -1,6 +1,7 @@
 // Airport panel: header (codes, elevation, runways), tabs Departures / Arrivals / Weather.
 /* global L */
-import { fetchMetar, fetchTaf } from './api.js';
+import { fetchMetar, fetchTaf, fetchTransportStops, fetchTransitDepartures } from './api.js';
+import { overpassQuery, parseStops, departureView, distanceText, MODES } from './transport.js';
 import { decodeMetar, formatTaf } from './metar.js';
 import { airportTraffic } from './airport-traffic.js';
 import { localTime } from './localtime.js';
@@ -50,6 +51,25 @@ function weatherHtml(metar, taf) {
     ${taf?.rawTAF ? `<pre class="raw">${esc(formatTaf(taf.rawTAF))}</pre>` : `<div class="na">${NA}</div>`}`;
 }
 
+function transportHtml(tp, tz) {
+  if (!tp) return 'Looking up local transport…';
+  const now = Date.now();
+  const deps = (tp.departures || []).map((d) => ({ d, v: departureView(d, now, tz) })).filter((x) => x.v).slice(0, 10);
+  const next = tp.departures === null
+    ? '<div class="note">Live departure times are not available for this airport right now.</div>'
+    : deps.length ? `<ul class="flights">${deps.map(({ d, v }) => `
+      <li><div><b>${MODES[d.mode]?.icon || '🚏'} ${val(d.line)}</b><span class="sub">${esc([d.headsign && `to ${d.headsign}`, d.stop].filter(Boolean).join(' · '))}</span></div>
+      <div class="right"><b class="${d.live ? 'live' : ''}">${esc(v.text)}</b><span class="sub">${v.clock}${d.live ? ' · live' : ' · scheduled'}</span></div></li>`).join('')}</ul>`
+      : '<div class="note">No departures in the next 2 hours near the airport.</div>';
+  const stops = tp.stops === null ? `<div class="na">Stop list ${NA}</div>`
+    : tp.stops.length ? `<ul class="flights">${tp.stops.map((s) => `
+      <li style="cursor:default"><div><b>${MODES[s.mode].icon} ${esc(s.name)}</b><span class="sub">${MODES[s.mode].label}${s.operator ? ` · ${esc(s.operator)}` : ''}</span></div>
+      <div class="right">${distanceText(s.distM)}</div></li>`).join('')}</ul>`
+      : '<div class="note">No stations or stops found within 2.5 km in OpenStreetMap.</div>';
+  return `<h3>Next departures</h3>${next}<h3>Stations and stops nearby</h3>${stops}
+    <div class="note">Stops © OpenStreetMap contributors. Times from Transitland (GTFS); where an operator shares no real-time data, scheduled times are shown.</div>`;
+}
+
 function listHtml(items, emptyText, otherLabel) {
   if (!items.length) return `<div class="note">${emptyText}</div>`;
   return `<ul class="flights">${items.map((it) => `
@@ -69,6 +89,7 @@ export function initAirportPanel(map, layer) {
   let timer = null;
   let marker = null;
   let clock = null;
+  let transport = null; // { stops, departures } for the open airport
 
   const yieldPanel = () => close();
   const body = () => el.querySelector('[data-body]');
@@ -78,6 +99,7 @@ export function initAirportPanel(map, layer) {
     if (!b) return;
     el.querySelectorAll('.tabs button').forEach((btn) => btn.classList.toggle('on', btn.dataset.tab === tab));
     if (tab === 'weather') { b.innerHTML = 'Loading…'; loadWeather(token); return; }
+    if (tab === 'transport') { b.innerHTML = transportHtml(transport, apt.tz); loadTransport(token); return; }
     if (!traffic) { b.innerHTML = 'Looking up live traffic and routes…'; return; }
     if (traffic.error) { b.innerHTML = `<div class="na">Live traffic ${NA}</div>`; return; }
     const note = `<div class="note">Derived from live positions and adsbdb routes, not schedules.${
@@ -96,6 +118,19 @@ export function initAirportPanel(map, layer) {
       fetchTaf(apt.icao).catch(() => null),
     ]);
     if (t === token && tab === 'weather') body().innerHTML = weatherHtml(metar, taf);
+  }
+
+  // Stops once per airport (OpenStreetMap); departures again every time the tab renders (api.js caches 60 s).
+  async function loadTransport(t) {
+    const stopsP = transport?.stops !== undefined ? Promise.resolve(transport.stops)
+      : fetchTransportStops(overpassQuery(apt.lat, apt.lon)).then((d) => parseStops(d, apt)).catch(() => null);
+    const [stops, departures] = await Promise.all([
+      stopsP,
+      fetchTransitDepartures(apt.lat, apt.lon).then((r) => r?.departures || []).catch(() => null),
+    ]);
+    if (t !== token) return;
+    transport = { stops, departures };
+    if (tab === 'transport') body().innerHTML = transportHtml(transport, apt.tz);
   }
 
   async function loadTraffic(t) {
@@ -123,6 +158,7 @@ export function initAirportPanel(map, layer) {
     apt = a;
     const t = ++token;
     traffic = null;
+    transport = null;
     tab = 'departures';
     const codes = [a.icao, a.iata].filter(Boolean).join(' / ');
     el.innerHTML = `
@@ -141,6 +177,7 @@ export function initAirportPanel(map, layer) {
         <button type="button" data-tab="departures">Departures</button>
         <button type="button" data-tab="arrivals">Arrivals</button>
         <button type="button" data-tab="weather">Weather</button>
+        <button type="button" data-tab="transport">Transport</button>
       </div>
       <div data-body></div>`;
     el.querySelector('.panel-close').addEventListener('click', () => close());
@@ -163,7 +200,10 @@ export function initAirportPanel(map, layer) {
       if (cell) cell.innerHTML = lt ? esc(lt.text) : `<span class="na">${NA}</span>`;
     };
     tick();
-    clock = setInterval(tick, 30000); // updates when the minute changes
+    clock = setInterval(() => {
+      tick();
+      if (tab === 'transport' && !document.hidden && transport) loadTransport(t); // "in N min" and live data
+    }, 30000);
     renderBody();
     loadTraffic(t);
     schedule(t);
