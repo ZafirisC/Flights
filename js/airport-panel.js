@@ -5,7 +5,7 @@ import { decodeMetar, formatTaf } from './metar.js';
 import { airportTraffic } from './airport-traffic.js';
 import { localTime } from './localtime.js';
 import { liveAtcLink } from './atc.js';
-import { webcamsButton, bindWebcam } from './webcams.js';
+import { createCameras } from './webcams.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -70,6 +70,7 @@ export function initAirportPanel(map, layer) {
   let timer = null;
   let marker = null;
   let clock = null;
+  let cameras = null;
 
   const yieldPanel = () => close();
   const body = () => el.querySelector('[data-body]');
@@ -78,6 +79,7 @@ export function initAirportPanel(map, layer) {
     const b = body();
     if (!b) return;
     el.querySelectorAll('.tabs button').forEach((btn) => btn.classList.toggle('on', btn.dataset.tab === tab));
+    if (tab === 'cameras') { cameras.render(b); return; }
     if (tab === 'weather') { b.innerHTML = 'Loading…'; loadWeather(token); return; }
     if (!traffic) { b.innerHTML = 'Looking up live traffic and routes…'; return; }
     if (traffic.error) { b.innerHTML = `<div class="na">Live traffic ${NA}</div>`; return; }
@@ -106,7 +108,7 @@ export function initAirportPanel(map, layer) {
     } catch {
       if (t === token) traffic = { error: true };
     }
-    if (t === token && tab !== 'weather') renderBody();
+    if (t === token && (tab === 'departures' || tab === 'arrivals')) renderBody();
   }
 
   function schedule(t) {
@@ -125,6 +127,7 @@ export function initAirportPanel(map, layer) {
     const t = ++token;
     traffic = null;
     tab = 'departures';
+    cameras = createCameras(a);
     const codes = [a.icao, a.iata].filter(Boolean).join(' / ');
     el.innerHTML = `
       <div class="panel-head">
@@ -137,11 +140,12 @@ export function initAirportPanel(map, layer) {
       ${rowHtml('Local time', '<span data-clock></span>')}
       ${row('Elevation', a.elev !== undefined ? `${a.elev.toLocaleString('en')} ft` : null)}
       ${rowHtml('Runways', runwaysHtml(a.rwy))}
-      ${a.icao || a.name ? `<div class="btn-row">${liveAtcLink(a.icao)}${webcamsButton(a)}</div><div data-webcam></div>` : ''}
+      ${a.icao ? `<div class="btn-row">${liveAtcLink(a.icao)}</div>` : ''}
       <div class="tabs">
         <button type="button" data-tab="departures">Departures</button>
         <button type="button" data-tab="arrivals">Arrivals</button>
         <button type="button" data-tab="weather">Weather</button>
+        <button type="button" data-tab="cameras">Cameras</button>
       </div>
       <div data-body></div>`;
     el.querySelector('.panel-close').addEventListener('click', () => close());
@@ -155,7 +159,6 @@ export function initAirportPanel(map, layer) {
         .find((x) => x.ac.hex === li.dataset.hex);
       if (item) layer.focus(item.ac); // opens the aircraft panel, which closes this one
     });
-    bindWebcam(el, a, el.querySelector('[data-webcam]'));
     showPanel();
     revealOnMap(map, [a.lat, a.lon]);
     marker = L.circleMarker([a.lat, a.lon], { radius: 9, color: '#1565c0', weight: 3, fillOpacity: 0.25, interactive: false }).addTo(map);
@@ -180,6 +183,8 @@ export function initAirportPanel(map, layer) {
     releasePanel(yieldPanel);
     marker?.remove();
     marker = null;
+    cameras?.dispose();
+    cameras = null;
     el.innerHTML = '';
     hidePanel();
   }

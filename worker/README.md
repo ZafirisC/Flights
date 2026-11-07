@@ -11,6 +11,7 @@ CORS proxy for the sources Phase 2 found blocked. Only these routes are forwarde
 | `/adsbtrace/data/traces/{xx}/trace_full_{hex}.json` (or `trace_recent_`) | `https://adsb.lol` | 30 s |
 | `/awc/metar?ids=&format=` and `/awc/taf?ids=&format=` | `https://aviationweather.gov/api/data` | 5 min |
 | `/flighttimes/{callsign}` | AeroDataBox (RapidAPI), needs secret `AERODATABOX_KEY`; answer trimmed | 15 min (1 h pause after 401/403/429) |
+| `/webcams?lat=&lon=&radius=` (km, 1–250) | Windy Webcams API v3, needs secret `WINDY_API_KEY`; answer trimmed to id/title/place/player URLs | 10 min |
 | `/opensky-check` | Diagnostic: secrets set? OpenSky login and data request result + time (no secrets shown; costs 1 credit) | — |
 | `/health` | — | — |
 
@@ -47,3 +48,8 @@ Without it `/flighttimes` answers 503 and the app simply hides the times.
 ## Test
 Open `https://zafirisc.github.io/Flights/tools/api-check.html?worker=<Worker URL>` and run all checks.
 When the proxied rows pass, set `WORKER_URL` in `js/api.js`.
+
+## Add the Windy Webcams key
+Cloudflare → Workers & Pages → `flights-proxy` → **Settings** → **Variables and Secrets** → **Add** → type **Secret**,
+name `WINDY_API_KEY`, value = your key from api.windy.com → **Deploy** (also paste the new `worker.js` first).
+Without it `/webcams` answers 503 and the Cameras tab shows "Not available".

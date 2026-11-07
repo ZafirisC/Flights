@@ -243,11 +243,15 @@ the points marked "unverified" still need a check with those hosts allowed.
   small US airfields; coverage of Greece unverified.
 - **FAA WeatherCams** (weathercams.faa.gov): US/Canada only, no documented API, so not usable for LGTS.
 - Search found no webcam for Thessaloniki (LGTS). Large-airport webcams are mostly on spotter sites with no API.
-- **Built (2026-11-07):** integrated live webcam in the airport panel. `js/webcam-list.js` is a hand-kept ICAO → camera map
-  (types `youtube`, `iframe`, `image` with refresh); `js/webcams.js` shows a "Live webcam" toggle that creates a 16:9 player
-  in the panel only when tapped (credit + source link under it). Airports without an entry keep the "Webcams ↗" Google search
-  link. **The list is empty: no embeddable camera has been verified yet** (needs a camera URL/YouTube live ID whose owner
-  allows embedding; some sites block iframes). Tested the toggle/refresh logic with a fake entry; no real stream tried.
+- **Built (2026-11-07), Windy:** "Cameras" tab in the airport panel. Radius select (5/10/25/50/100 km, remembered), list sorted
+  by distance, tick up to 4 cameras to watch together in a grid of Windy's own embed players (live where the camera has
+  one, else Windy's day time-lapse), credit + windy.com links shown. `js/webcams.js` (tab), `fetchWebcams()` in `js/api.js`,
+  Worker route `/webcams` (key in secret `WINDY_API_KEY`, 10 min cache; **Worker must be redeployed and the secret added,
+  see `worker/README.md`**). Replaced the earlier Google-search button and the hand-kept `webcam-list.js`.
+  Checked 2026-11-07 with the real key from the sandbox: 13 cameras within 30 km of LGTS, nearest 5.6 km (Neo Rysio), none at
+  the airport, only 1 offers `live`; the rest are time-lapse. Tested the tab with mocked Worker data (list, 4-player limit,
+  radius change keeps selection). **Not yet tried:** real Windy players inside the app (Windy may refuse framing from
+  github.io), and the deployed Worker route.
 - Earlier suggested next step: a link-only "Webcams" button (like `js/atc.js`) to a Windy map centred on the airport,
   with embedding as a later step.
 
