@@ -5,6 +5,7 @@ import { decodeMetar, formatTaf } from './metar.js';
 import { airportTraffic } from './airport-traffic.js';
 import { localTime } from './localtime.js';
 import { liveAtcLink } from './atc.js';
+import { webcamsLink } from './webcams.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -136,7 +137,7 @@ export function initAirportPanel(map, layer) {
       ${rowHtml('Local time', '<span data-clock></span>')}
       ${row('Elevation', a.elev !== undefined ? `${a.elev.toLocaleString('en')} ft` : null)}
       ${rowHtml('Runways', runwaysHtml(a.rwy))}
-      ${a.icao ? `<div class="btn-row">${liveAtcLink(a.icao)}</div>` : ''}
+      ${a.icao || a.lat != null ? `<div class="btn-row">${liveAtcLink(a.icao)}${webcamsLink(a.lat, a.lon)}</div>` : ''}
       <div class="tabs">
         <button type="button" data-tab="departures">Departures</button>
         <button type="button" data-tab="arrivals">Arrivals</button>
