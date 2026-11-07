@@ -243,7 +243,11 @@ the points marked "unverified" still need a check with those hosts allowed.
   small US airfields; coverage of Greece unverified.
 - **FAA WeatherCams** (weathercams.faa.gov): US/Canada only, no documented API, so not usable for LGTS.
 - Search found no webcam for Thessaloniki (LGTS). Large-airport webcams are mostly on spotter sites with no API.
-- **Built (2026-11-07):** link-only "Webcams ↗" button in the airport panel (`js/webcams.js`, next to Live ATC). Opens a Google search for "<name> <ICAO> airport live webcam" (user rejected the Windy link, 2026-11-07). No API, no key, no embedding.
+- **Built (2026-11-07):** integrated live webcam in the airport panel. `js/webcam-list.js` is a hand-kept ICAO → camera map
+  (types `youtube`, `iframe`, `image` with refresh); `js/webcams.js` shows a "Live webcam" toggle that creates a 16:9 player
+  in the panel only when tapped (credit + source link under it). Airports without an entry keep the "Webcams ↗" Google search
+  link. **The list is empty: no embeddable camera has been verified yet** (needs a camera URL/YouTube live ID whose owner
+  allows embedding; some sites block iframes). Tested the toggle/refresh logic with a fake entry; no real stream tried.
 - Earlier suggested next step: a link-only "Webcams" button (like `js/atc.js`) to a Windy map centred on the airport,
   with embedding as a later step.
 

@@ -5,7 +5,7 @@ import { decodeMetar, formatTaf } from './metar.js';
 import { airportTraffic } from './airport-traffic.js';
 import { localTime } from './localtime.js';
 import { liveAtcLink } from './atc.js';
-import { webcamsLink } from './webcams.js';
+import { webcamsButton, bindWebcam } from './webcams.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -137,7 +137,7 @@ export function initAirportPanel(map, layer) {
       ${rowHtml('Local time', '<span data-clock></span>')}
       ${row('Elevation', a.elev !== undefined ? `${a.elev.toLocaleString('en')} ft` : null)}
       ${rowHtml('Runways', runwaysHtml(a.rwy))}
-      ${a.icao || a.name ? `<div class="btn-row">${liveAtcLink(a.icao)}${webcamsLink(a)}</div>` : ''}
+      ${a.icao || a.name ? `<div class="btn-row">${liveAtcLink(a.icao)}${webcamsButton(a)}</div><div data-webcam></div>` : ''}
       <div class="tabs">
         <button type="button" data-tab="departures">Departures</button>
         <button type="button" data-tab="arrivals">Arrivals</button>
@@ -155,6 +155,7 @@ export function initAirportPanel(map, layer) {
         .find((x) => x.ac.hex === li.dataset.hex);
       if (item) layer.focus(item.ac); // opens the aircraft panel, which closes this one
     });
+    bindWebcam(el, a, el.querySelector('[data-webcam]'));
     showPanel();
     revealOnMap(map, [a.lat, a.lon]);
     marker = L.circleMarker([a.lat, a.lon], { radius: 9, color: '#1565c0', weight: 3, fillOpacity: 0.25, interactive: false }).addTo(map);
