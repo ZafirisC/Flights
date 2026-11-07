@@ -244,7 +244,7 @@ the points marked "unverified" still need a check with those hosts allowed.
 - **FAA WeatherCams** (weathercams.faa.gov): US/Canada only, no documented API, so not usable for LGTS.
 - Search found no webcam for Thessaloniki (LGTS). Large-airport webcams are mostly on spotter sites with no API.
 - **Built (2026-11-07):** link-only "Webcams ↗" button in the airport panel (`js/webcams.js`, next to Live ATC). Opens
-  `https://www.windy.com/-Webcams-webcams?{lat},{lon},11`. The URL format is from memory and **not verified** (sandbox cannot
+  `https://www.windy.com/-Webcams-webcams?webcams,{lat},{lon},11`. The URL format is from memory and **not verified** (sandbox cannot
   reach windy.com); please tap it once on PC/iPhone. No API, no key, no embedding.
 - Earlier suggested next step: a link-only "Webcams" button (like `js/atc.js`) to a Windy map centred on the airport,
   with embedding as a later step.

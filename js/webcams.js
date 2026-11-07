@@ -2,7 +2,7 @@
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 export const webcamsUrl = (lat, lon, zoom = 11) =>
-  `https://www.windy.com/-Webcams-webcams?${Number(lat).toFixed(4)},${Number(lon).toFixed(4)},${zoom}`;
+  `https://www.windy.com/-Webcams-webcams?webcams,${Number(lat).toFixed(4)},${Number(lon).toFixed(4)},${zoom}`;
 
 export function webcamsLink(lat, lon, label = 'Webcams') {
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
