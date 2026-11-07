@@ -243,9 +243,15 @@ the points marked "unverified" still need a check with those hosts allowed.
   small US airfields; coverage of Greece unverified.
 - **FAA WeatherCams** (weathercams.faa.gov): US/Canada only, no documented API, so not usable for LGTS.
 - Search found no webcam for Thessaloniki (LGTS). Large-airport webcams are mostly on spotter sites with no API.
-- **Built (2026-11-07):** link-only "Webcams ↗" button in the airport panel (`js/webcams.js`, next to Live ATC). Opens
-  `https://www.windy.com/-Webcams-webcams?{lat},{lon},11`. The URL format is from memory and **not verified** (sandbox cannot
-  reach windy.com); please tap it once on PC/iPhone. No API, no key, no embedding.
+- **Built (2026-11-07), Windy:** "Cameras" tab in the airport panel. Radius select (5/10/25/50/100 km, remembered), list sorted
+  by distance, tick up to 4 cameras to watch together in a grid of Windy's own embed players (live where the camera has
+  one, else Windy's day time-lapse), credit + windy.com links shown. `js/webcams.js` (tab), `fetchWebcams()` in `js/api.js`,
+  Worker route `/webcams` (key in secret `WINDY_API_KEY`, 10 min cache; **Worker must be redeployed and the secret added,
+  see `worker/README.md`**). Worker deployed from the sandbox via the Cloudflare API on 2026-11-07 (existing secrets kept); `WINDY_API_KEY` still has to be added by the user in the dashboard. Replaced the earlier Google-search button and the hand-kept `webcam-list.js`.
+  Checked 2026-11-07 with the real key from the sandbox: 13 cameras within 30 km of LGTS, nearest 5.6 km (Neo Rysio), none at
+  the airport, only 1 offers `live`; the rest are time-lapse. Tested the tab with mocked Worker data (list, 4-player limit,
+  radius change keeps selection). **Not yet tried:** real Windy players inside the app (Windy may refuse framing from
+  github.io), and the deployed Worker route.
 - Earlier suggested next step: a link-only "Webcams" button (like `js/atc.js`) to a Windy map centred on the airport,
   with embedding as a later step.
 
