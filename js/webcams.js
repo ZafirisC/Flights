@@ -33,7 +33,7 @@ export function createCameras(apt) {
       const data = await fetchWebcams(apt.lat, apt.lon, radius);
       if (t !== seq) return;
       cams = (data?.webcams || []).filter((c) => src(c) && Number.isFinite(c.lat))
-        .map((c) => ({ ...c, km: distanceNm(apt.lat, apt.lon, c.lat, c.lon) * KM_PER_NM }))
+        .map((c) => ({ ...c, id: String(c.id), km: distanceNm(apt.lat, apt.lon, c.lat, c.lon) * KM_PER_NM }))
         .sort((a, b) => a.km - b.km);
       cams.forEach((c) => known.set(c.id, c));
       status = 'ready';
