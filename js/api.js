@@ -331,3 +331,11 @@ export async function probe(url, { timeout = 10000 } = {}) {
     clearTimeout(timer);
   }
 }
+
+// Windy webcams within radiusKm of a point (via the Worker, which holds the key and caches 10 min).
+// { total, webcams: [{ id, title, city, country, lat, lon, live, day, page }] }; throws when the service is off.
+export async function fetchWebcams(lat, lon, radiusKm) {
+  if (!WORKER_URL) throw new Error('No Worker');
+  const q = `lat=${lat.toFixed(3)}&lon=${lon.toFixed(3)}&radius=${Math.round(radiusKm)}`;
+  return cachedJSON(`${WORKER_URL}/webcams?${q}`, 10 * 60000);
+}
