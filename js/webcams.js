@@ -67,10 +67,16 @@ export function createCameras(apt) {
   function syncGrid() {
     const grid = root?.querySelector('[data-camgrid]');
     if (!grid) return;
+    let added = null;
     grid.querySelectorAll('[data-tile]').forEach((n) => { if (!selected.has(n.dataset.tile)) n.remove(); });
     for (const id of selected) {
-      if (!grid.querySelector(`[data-tile="${CSS.escape(id)}"]`) && known.has(id)) grid.insertAdjacentHTML('beforeend', tile(known.get(id)));
+      if (!grid.querySelector(`[data-tile="${CSS.escape(id)}"]`) && known.has(id)) {
+        grid.insertAdjacentHTML('beforeend', tile(known.get(id)));
+        added = grid.lastElementChild;
+      }
     }
+    // The grid is above the list: bring a newly added player into view so a tap visibly does something.
+    added?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
   function render(el) {
