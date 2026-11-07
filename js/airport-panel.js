@@ -137,7 +137,7 @@ export function initAirportPanel(map, layer) {
       ${rowHtml('Local time', '<span data-clock></span>')}
       ${row('Elevation', a.elev !== undefined ? `${a.elev.toLocaleString('en')} ft` : null)}
       ${rowHtml('Runways', runwaysHtml(a.rwy))}
-      ${a.icao || a.lat != null ? `<div class="btn-row">${liveAtcLink(a.icao)}${webcamsLink(a.lat, a.lon)}</div>` : ''}
+      ${a.icao || a.name ? `<div class="btn-row">${liveAtcLink(a.icao)}${webcamsLink(a)}</div>` : ''}
       <div class="tabs">
         <button type="button" data-tab="departures">Departures</button>
         <button type="button" data-tab="arrivals">Arrivals</button>

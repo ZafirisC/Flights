@@ -1,10 +1,10 @@
-// Webcams: link only. Opens Windy's webcam layer centred on the airport (no API, no key, no embedding).
+// Webcams: link only. Opens a web search for live webcams of the airport (no API, no key, no embedding).
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-export const webcamsUrl = (lat, lon, zoom = 11) =>
-  `https://www.windy.com/-Webcams-webcams?webcams,${Number(lat).toFixed(4)},${Number(lon).toFixed(4)},${zoom}`;
+export const webcamsUrl = (apt) =>
+  `https://www.google.com/search?q=${encodeURIComponent(`${apt.name || apt.icao} ${apt.icao || ''} airport live webcam`.replace(/\s+/g, ' ').trim())}`;
 
-export function webcamsLink(lat, lon, label = 'Webcams') {
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return '';
-  return `<a class="panel-btn" href="${esc(webcamsUrl(lat, lon))}" target="_blank" rel="noopener">${esc(label)} ↗</a>`;
+export function webcamsLink(apt, label = 'Webcams') {
+  if (!apt || !(apt.name || apt.icao)) return '';
+  return `<a class="panel-btn" href="${esc(webcamsUrl(apt))}" target="_blank" rel="noopener">${esc(label)} ↗</a>`;
 }
