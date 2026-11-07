@@ -247,7 +247,7 @@ the points marked "unverified" still need a check with those hosts allowed.
   by distance, tick up to 4 cameras to watch together in a grid of Windy's own embed players (live where the camera has
   one, else Windy's day time-lapse), credit + windy.com links shown. `js/webcams.js` (tab), `fetchWebcams()` in `js/api.js`,
   Worker route `/webcams` (key in secret `WINDY_API_KEY`, 10 min cache; **Worker must be redeployed and the secret added,
-  see `worker/README.md`**). Replaced the earlier Google-search button and the hand-kept `webcam-list.js`.
+  see `worker/README.md`**). Worker deployed from the sandbox via the Cloudflare API on 2026-11-07 (existing secrets kept); `WINDY_API_KEY` still has to be added by the user in the dashboard. Replaced the earlier Google-search button and the hand-kept `webcam-list.js`.
   Checked 2026-11-07 with the real key from the sandbox: 13 cameras within 30 km of LGTS, nearest 5.6 km (Neo Rysio), none at
   the airport, only 1 offers `live`; the rest are time-lapse. Tested the tab with mocked Worker data (list, 4-player limit,
   radius change keeps selection). **Not yet tried:** real Windy players inside the app (Windy may refuse framing from
