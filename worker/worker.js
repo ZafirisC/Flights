@@ -101,6 +101,83 @@ async function flightTimes(callsign, env, ctx, origin) {
   return json(text, origin);
 }
 
+// Next departures near an airport (Transitland v2, free key as secret TRANSITLAND_KEY). One answer per ~0.001° point is
+// cached 2 min (KV if bound). Stops → nearest few → their departures, merged and trimmed. Not verified live.
+const TRANSIT_TTL = 120;
+const TRANSIT_API = 'https://transit.land/api/v2/rest';
+const GTFS_MODE = { 0: 'tram', 1: 'metro', 2: 'train', 3: 'bus', 4: 'ferry', 5: 'tram', 7: 'tram', 11: 'bus', 12: 'tram' };
+
+// First field that is an ISO time with a zone ("...Z" or "+02:00") → ISO UTC string, else null.
+function isoUtc(...vals) {
+  for (const v of vals) {
+    if (typeof v === 'string' && /T.*(Z|[+-]\d\d:?\d\d)$/.test(v) && !Number.isNaN(Date.parse(v))) return new Date(v).toISOString();
+  }
+  return null;
+}
+
+// Transitland departures answer → [{ utc, line, headsign, mode, live, stop }].
+export function trimDepartures(stops) {
+  const out = [];
+  for (const st of Array.isArray(stops) ? stops : []) {
+    for (const d of st.departures || []) {
+      const t = d.departure || d.arrival || {};
+      const est = isoUtc(t.estimated_utc, t.estimated_local, t.estimated);
+      const utc = est || isoUtc(t.scheduled_utc, t.scheduled_local, t.scheduled);
+      if (!utc) continue;
+      const route = d.trip?.route || {};
+      const type = route.route_type;
+      out.push({
+        utc,
+        live: !!est,
+        line: route.route_short_name || route.route_long_name || null,
+        headsign: d.trip?.trip_headsign || null,
+        mode: GTFS_MODE[type] || (type >= 100 && type < 200 ? 'train' : type >= 700 && type < 800 ? 'bus' : null),
+        stop: st.stop_name || null,
+      });
+    }
+  }
+  const seen = new Set();
+  return out.sort((a, b) => a.utc.localeCompare(b.utc)).filter((d) => {
+    const k = `${d.utc}|${d.line}|${d.headsign}`;
+    return seen.has(k) ? false : seen.add(k);
+  }).slice(0, 30);
+}
+
+async function transitGet(path, env) {
+  const res = await fetch(`${TRANSIT_API}${path}`, {
+    headers: { apikey: env.TRANSITLAND_KEY, 'User-Agent': USER_AGENT, Accept: 'application/json' },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
+  return res.json();
+}
+
+async function transit(lat, lon, env, ctx, origin) {
+  if (!env.TRANSITLAND_KEY) return reply(503, { error: 'Transit not configured' }, origin);
+  const key = `x:${lat},${lon}`;
+  const cached = await cacheGet(env, key);
+  if (cached) return json(cached, origin);
+  if (await cacheGet(env, 'transit-blocked')) return reply(503, { error: 'Transit quota exhausted, retry later' }, origin);
+  try {
+    const list = await transitGet(`/stops?lat=${lat}&lon=${lon}&radius=1500&limit=20`, env);
+    const dist = (s) => {
+      const [x, y] = s.geometry?.coordinates || [lon, lat];
+      return (y - lat) ** 2 + ((x - lon) * Math.cos((lat * Math.PI) / 180)) ** 2;
+    };
+    const near = (list.stops || []).sort((a, b) => dist(a) - dist(b)).slice(0, 6).filter((s) => s.onestop_id);
+    const groups = await Promise.all(near.map((s) =>
+      transitGet(`/stops/${encodeURIComponent(s.onestop_id)}/departures?next=7200&limit=6`, env)
+        .then((r) => (r.stops || []).map((x) => ({ ...x, stop_name: x.stop_name || s.stop_name })))
+        .catch((err) => { if ([401, 403, 429].includes(err.status)) throw err; return []; })));
+    const text = JSON.stringify({ departures: trimDepartures(groups.flat()) });
+    ctx.waitUntil(cachePut(env, key, text, TRANSIT_TTL));
+    return json(text, origin);
+  } catch (err) {
+    if ([401, 403, 429].includes(err.status)) ctx.waitUntil(cachePut(env, 'transit-blocked', '1', TIMES_BLOCK_TTL));
+    return reply(502, { error: `Upstream: ${err.message}` }, origin);
+  }
+}
+
 // Windy Webcams: /webcams?lat=&lon=&radius= (km, 1-250). Key in secret WINDY_API_KEY; answer trimmed; cached 10 min.
 const WINDY_TTL = 600;
 async function windyWebcams(url, env, ctx, origin) {
@@ -230,6 +307,8 @@ export default {
     if (url.pathname === '/' || url.pathname === '/health') return reply(200, { ok: true }, origin);
     if (url.pathname === '/opensky-check') return reply(200, await openSkyCheck(env), origin);
 
+    const tr = url.pathname.match(/^\/transit\/(-?\d{1,2}\.\d{1,3})\/(-?\d{1,3}\.\d{1,3})$/);
+    if (tr) return transit(tr[1], tr[2], env, ctx, origin);
     if (url.pathname === '/webcams') return windyWebcams(url, env, ctx, origin);
 
     const times = url.pathname.match(/^\/flighttimes\/([^/]+)$/);
