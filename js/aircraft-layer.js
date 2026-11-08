@@ -3,6 +3,7 @@
 /* global L */
 import { altitudeColor } from './altitude.js';
 import { PLANE_PATH } from './plane-icon.js';
+import { startGlide } from './glide.js';
 
 const LOST_MS = 45000; // selected aircraft not received for this long → "Signal lost"
 const EMERGENCY_COLOR = '#d32f2f';
@@ -24,8 +25,8 @@ function makeIcon(ac, selected) {
     className: `ac-icon${emergency ? ' ac-emergency' : ''}${selected ? ' ac-selected' : ''}`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
-    html: `<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="transform: rotate(${rot}deg)">
-      <path d="${PLANE_PATH}" fill="${color}" stroke="#1a1a1a" stroke-width="0.8"/></svg>`,
+    html: `<div class="ac-glide"><svg viewBox="0 0 24 24" width="${size}" height="${size}" style="transform: rotate(${rot}deg)">
+      <path d="${PLANE_PATH}" fill="${color}" stroke="#1a1a1a" stroke-width="0.8"/></svg></div>`, // .ac-glide: js/glide.js
   });
 }
 
@@ -56,6 +57,8 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
   const markers = new Map(); // hex → { marker, key, pinned }
   let selectedHex = null;
   let pendingHex = null; // select() called before the aircraft was loaded
+
+  startGlide(map, () => markers.values());
 
   const wantsPin = (ac) => !!emergencyOf(ac) || ac.hex === selectedHex;
 
@@ -203,5 +206,5 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
 
   const list = () => [...markers.values()].map((e) => e.marker.aircraft);
 
-  return { update, select, focus, list, selectedMissing, updateSelected, reset, count: () => markers.size };
+  return { update, select, focus, list, selectedHex: () => selectedHex, selectedMissing, updateSelected, reset, count: () => markers.size };
 }

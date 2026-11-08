@@ -185,7 +185,8 @@ html, body {
 
 /* Aircraft markers */
 .ac-icon { background: none; border: none; }
-.ac-icon svg { display: block; filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.8)); }
+.ac-icon svg { display: block; }
+.ac-glide { position: relative; z-index: 0; width: 100%; height: 100%; } /* moved between polls by js/glide.js; carries the rings */ /* no filter: a drop-shadow on hundreds of icons makes panning slow on phones */
 
 /* Altitude legend (sits above the disclaimer) */
 .leaflet-bottom.leaflet-left { bottom: calc(var(--safe-bottom) + 22px); }
@@ -205,7 +206,7 @@ html, body {
 
 /* Emergency aircraft */
 .ac-icon.ac-emergency svg { filter: drop-shadow(0 0 3px #fff); }
-.ac-icon.ac-emergency::before {
+.ac-icon.ac-emergency .ac-glide::before {
   content: "";
   position: absolute;
   inset: -6px;
@@ -292,7 +293,7 @@ html, body {
 #panel table.fc td, #panel table.fc th { padding: 3px 4px 3px 0; }
 
 /* Selected aircraft */
-.ac-icon.ac-selected::after {
+.ac-icon.ac-selected .ac-glide::after {
   content: "";
   position: absolute;
   inset: -5px;

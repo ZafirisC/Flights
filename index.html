@@ -19,6 +19,43 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
         integrity="sha256-YSWCMtmNZNwqex4CEw1nQhvFub2lmU7vcCKP+XVwwXA=" crossorigin="" />
   <link rel="stylesheet" href="css/style.css" />
+  <!-- Start-up speed: open connections early and fetch every module in parallel instead of one import level at a time.
+       Keep this list in sync with the imports (tests/preload.test.mjs checks it). -->
+  <link rel="preconnect" href="https://flights-proxy.zkriaris.workers.dev" crossorigin />
+  <link rel="preconnect" href="https://tile.openstreetmap.org" />
+  <link rel="modulepreload" href="js/aircraft-layer.js" />
+  <link rel="modulepreload" href="js/aircraft-panel.js" />
+  <link rel="modulepreload" href="js/airlines.js" />
+  <link rel="modulepreload" href="js/airport-layer.js" />
+  <link rel="modulepreload" href="js/airport-panel.js" />
+  <link rel="modulepreload" href="js/airport-traffic.js" />
+  <link rel="modulepreload" href="js/alerts.js" />
+  <link rel="modulepreload" href="js/altitude.js" />
+  <link rel="modulepreload" href="js/api.js" />
+  <link rel="modulepreload" href="js/atc.js" />
+  <link rel="modulepreload" href="js/flight-times.js" />
+  <link rel="modulepreload" href="js/forecast.js" />
+  <link rel="modulepreload" href="js/geo.js" />
+  <link rel="modulepreload" href="js/glide.js" />
+  <link rel="modulepreload" href="js/layers.js" />
+  <link rel="modulepreload" href="js/localtime.js" />
+  <link rel="modulepreload" href="js/main.js" />
+  <link rel="modulepreload" href="js/map.js" />
+  <link rel="modulepreload" href="js/metar.js" />
+  <link rel="modulepreload" href="js/panel.js" />
+  <link rel="modulepreload" href="js/plane-icon.js" />
+  <link rel="modulepreload" href="js/progress-bar.js" />
+  <link rel="modulepreload" href="js/progress.js" />
+  <link rel="modulepreload" href="js/refresh.js" />
+  <link rel="modulepreload" href="js/search.js" />
+  <link rel="modulepreload" href="js/share.js" />
+  <link rel="modulepreload" href="js/status.js" />
+  <link rel="modulepreload" href="js/storage.js" />
+  <link rel="modulepreload" href="js/theme.js" />
+  <link rel="modulepreload" href="js/track.js" />
+  <link rel="modulepreload" href="js/traffic.js" />
+  <link rel="modulepreload" href="js/transport.js" />
+  <link rel="modulepreload" href="js/webcams.js" />
 </head>
 <body>
   <div id="map" aria-label="Map"></div>
