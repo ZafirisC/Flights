@@ -241,8 +241,9 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
 - Next departures: Worker route `/transit/{lat}/{lon}` → Transitland v2 (nearest 6 stops → departures next 2 h), key in secret
   `TRANSITLAND_KEY`, cached 2 min. Shows "live" (estimated) vs "scheduled". No key / quota → tab shows stops only plus a note.
   Refreshes every 30 s while the tab is open (api.js caches 60 s). **Worker must be redeployed + key added** (see worker/README.md).
-- Open: Transitland field names (`*_utc` vs `*_local`) are coded defensively from memory of the API; check the real answer for
-  one airport and adjust `trimDepartures()`. Real-time data exists only where the operator publishes GTFS-RT; many airports will show scheduled times.
+- Checked against the real Transitland API (2026-11-08, Athens airport): stops and departures answers match what the Worker parses
+  (`scheduled_utc` / `estimated_utc`, `trip.trip_headsign`, `route.route_type`, `stop_name`). Names come in the local language (Greek).
+  Still unverified: Overpass from the browser, and the Worker deploy itself. Many airports will show scheduled times only.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
