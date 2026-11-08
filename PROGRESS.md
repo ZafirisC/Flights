@@ -284,6 +284,23 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Checked with Playwright (mocked live data, Leaflet from npm because unpkg is blocked in the sandbox): markers, moves,
   emergency chip, selection across refreshes, no page errors.
 
+## Speed and smoothness (2026-11-08)
+- Aircraft glide between polls (`js/glide.js`): dead reckoning from each fix's ground speed + track (age = time since
+  received + `seen`, capped at 60 s), ~30 fps, only for visible icons at zoom ≥ 7, paused while zooming. The marker LatLng
+  stays the real fix (moving it would make markercluster re-cluster every frame); only the inner `.ac-glide` wrapper is
+  shifted in pixels. Selection ring and emergency pulse moved onto that wrapper. Known: the solid track line ends at the
+  last real fix, so a fast plane sits up to ~1–2 nm ahead of it at high zoom until the next poll.
+- No `drop-shadow` filter on normal aircraft icons (expensive while panning with hundreds of icons; emergencies keep it).
+- `index.html`: `modulepreload` for all 33 modules + `preconnect` to the Worker and OSM tiles, so modules load in
+  parallel instead of one import level at a time. `tests/preload.test.mjs` fails if the list drifts from the imports.
+- Live sources: 6 s timeout each (was 10 s), so the worst case with every source hanging is 24 s, not 40 s.
+- Markers only for aircraft in the visible area + 10 % (the fetched circle is ~1.5–2× the screen); the selected aircraft
+  and emergencies are always kept.
+- Not done: separate small airport file for the map dots — 4569 of 6096 airports qualify and the panel needs their
+  fields, so it would be 167 KB vs 295 KB gzipped and the full file still loads on the first panel/search (more total).
+- Checked with Playwright (mocked data): planes move along their track, parked ones stay, off-screen aircraft not drawn,
+  off-screen emergency still drawn + chip, ring/pulse follow, no page errors. Not yet felt on a real iPhone.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

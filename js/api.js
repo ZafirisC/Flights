@@ -141,6 +141,9 @@ export async function fetchForecast(lat, lon, hours = 7) {
 export const MAX_RADIUS_NM = 250; // limit of the readsb sources
 
 const BACKOFF_MS = { 403: 10 * 60000, 429: 5 * 60000, other: 60000 };
+// Per-source limit: a hanging source is given up on quickly so the next one gets its turn (the default 10 s × 4 sources
+// meant up to 40 s of empty map). Long enough for a 250 nm answer on a slow phone connection.
+const LIVE_TIMEOUT_MS = 6000;
 const backoffUntil = {}; // source name → time
 const lastError = {}; // source name → short reason, for the status message
 
@@ -187,7 +190,7 @@ async function liveQuery(kind, ...args) {
       continue;
     }
     try {
-      const list = src.parse(await getJSON(SOURCES[src.name] + path(...args)));
+      const list = src.parse(await getJSON(SOURCES[src.name] + path(...args), { timeout: LIVE_TIMEOUT_MS }));
       delete lastError[src.name];
       return list;
     } catch (err) {

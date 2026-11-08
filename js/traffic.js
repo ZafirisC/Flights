@@ -3,10 +3,12 @@
 /* global L */
 import { fetchAircraft, fetchTrackedAircraft, MAX_RADIUS_NM } from './api.js';
 import { showStatus, clearStatus } from './status.js';
+import { emergencyOf } from './aircraft-layer.js';
 
 const POLL_MS = 12000;
 const MOVE_DEBOUNCE_MS = 400;
 const NM_PER_M = 1 / 1852;
+const VIEW_PAD = 0.1; // markers are made for the visible area plus this margin (the fetched circle is ~1.5–2× larger)
 
 export function startTraffic(map, layer) {
   let timer = null;
@@ -32,13 +34,23 @@ export function startTraffic(map, layer) {
     return { lat: c.lat, lon: L.Util.wrapNum(c.lng, [-180, 180], true), radius: r };
   }
 
+  // Only aircraft on screen (plus a margin) get a marker: fewer DOM elements and less clustering work.
+  // The selected aircraft and emergencies are always kept (panel, emergency chips).
+  function onScreen(aircraft) {
+    const b = map.getBounds().pad(VIEW_PAD);
+    const centerLng = map.getCenter().lng;
+    const sel = layer.selectedHex();
+    return aircraft.filter((ac) => ac.hex === sel || emergencyOf(ac)
+      || b.contains([ac.lat, ac.lon + 360 * Math.round((centerLng - ac.lon) / 360)])); // map may be panned past ±180°
+  }
+
   async function refresh() {
     const id = ++requestId;
     const v = viewport();
     try {
       const aircraft = await fetchAircraft(v.lat, v.lon, v.radius);
       if (id !== requestId) return; // a newer request is under way
-      layer.update(aircraft);
+      layer.update(onScreen(aircraft));
       lastOk = Date.now();
       setStatus(v.radius > MAX_RADIUS_NM ? `Zoomed out: showing aircraft within ${MAX_RADIUS_NM} nm of the map centre` : '');
       await trackSelected(id);
