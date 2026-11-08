@@ -233,7 +233,7 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   answers the Worker, so OpenSky very likely drops Cloudflare traffic, like adsb.fi and airplanes.live.
   Next: user opens the OpenSky URL from home to confirm OpenSky itself is up; then decide on a non-Cloudflare proxy.
 
-## Airport "Transport" tab (Sonnet) — code done, NOT verified live
+## Airport "Transport" tab (Sonnet) — done, verified live by user (2026-11-08)
 - New tab in the airport panel. `js/transport.js` (pure, tested in `tests/transport.test.mjs`): Overpass query + `parseStops()`
   (train / metro / tram / bus / ferry / taxi within 2.5 km of the airport point, deduped, nearest first) and `departureView()`
   ("in 7 min", clock in airport time zone). Stops: OpenStreetMap Overpass, no key, called directly from the browser via
@@ -243,7 +243,9 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
   Refreshes every 30 s while the tab is open (api.js caches 60 s). **Worker must be redeployed + key added** (see worker/README.md).
 - Checked against the real Transitland API (2026-11-08, Athens airport): stops and departures answers match what the Worker parses
   (`scheduled_utc` / `estimated_utc`, `trip.trip_headsign`, `route.route_type`, `stop_name`). Names come in the local language (Greek).
-  Still unverified: Overpass from the browser, and the Worker deploy itself. Many airports will show scheduled times only.
+  Verified live (user, 2026-11-08, PR #11 merged): the tab works on the Pages site, so Overpass answers directly from the browser and
+  the Worker `/transit` route + `TRANSITLAND_KEY` are deployed. Many airports will show scheduled times only (no GTFS-RT);
+  metro/train rows have no destination (Transitland leaves `trip_headsign` empty). Not tried: an airport with no GTFS coverage.
 ## Airport cameras — research only (2026-11-04), no code
 Web search only; the session could not open api.windy.com or aviationwx.org (not in the allowed network domains), so
 the points marked "unverified" still need a check with those hosts allowed.
