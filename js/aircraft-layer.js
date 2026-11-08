@@ -10,22 +10,35 @@ const EMERGENCIES = { 7500: 'Hijack', 7600: 'Radio failure', 7700: 'Emergency' }
 
 export const emergencyOf = (ac) => EMERGENCIES[ac.squawk] || null;
 
-function iconFor(ac, selected) {
+function iconKey(ac, selected) {
+  const color = emergencyOf(ac) ? EMERGENCY_COLOR : altitudeColor(ac.alt, ac.onGround);
+  return `${color}|${Math.round(ac.track ?? 0)}|${selected}`;
+}
+
+function makeIcon(ac, selected) {
   const emergency = !!emergencyOf(ac);
   const color = emergency ? EMERGENCY_COLOR : altitudeColor(ac.alt, ac.onGround);
   const rot = Math.round(ac.track ?? 0);
   const size = emergency ? 32 : 26;
-  return {
-    key: `${color}|${rot}|${selected}`,
-    icon: L.divIcon({
-      className: `ac-icon${emergency ? ' ac-emergency' : ''}${selected ? ' ac-selected' : ''}`,
-      iconSize: [size, size],
-      iconAnchor: [size / 2, size / 2],
-      html: `<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="transform: rotate(${rot}deg)">
-        <path d="${PLANE_PATH}" fill="${color}" stroke="#1a1a1a" stroke-width="0.8"/></svg>`,
-    }),
-  };
+  return L.divIcon({
+    className: `ac-icon${emergency ? ' ac-emergency' : ''}${selected ? ' ac-selected' : ''}`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    html: `<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="transform: rotate(${rot}deg)">
+      <path d="${PLANE_PATH}" fill="${color}" stroke="#1a1a1a" stroke-width="0.8"/></svg>`,
+  });
 }
+
+// Sets a new icon only when its look changed (building divIcons for every aircraft on every poll is wasted work).
+function refreshIcon(entry, ac, selected) {
+  const key = iconKey(ac, selected);
+  if (entry.key !== key) { entry.marker.setIcon(makeIcon(ac, selected)); entry.key = key; }
+}
+
+const samePos = (marker, ac) => {
+  const p = marker.getLatLng();
+  return p.lat === ac.lat && p.lng === ac.lon;
+};
 
 // onSelect(ac | null) fires when the selection changes; onSelectedUpdate(ac, { lost }) on each fetch while selected.
 // The selected aircraft stays on the map (and in the panel) even when a fetch no longer contains it.
@@ -47,13 +60,13 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
   const wantsPin = (ac) => !!emergencyOf(ac) || ac.hex === selectedHex;
 
   function create(ac) {
-    const { key, icon } = iconFor(ac, ac.hex === selectedHex);
+    const selected = ac.hex === selectedHex;
     const marker = L.marker([ac.lat, ac.lon], {
-      icon, keyboard: false, title: ac.callsign || ac.hex, zIndexOffset: wantsPin(ac) ? 1000 : 0,
+      icon: makeIcon(ac, selected), keyboard: false, title: ac.callsign || ac.hex, zIndexOffset: wantsPin(ac) ? 1000 : 0,
     });
     marker.aircraft = ac;
     marker.on('click', () => select(ac.hex));
-    return { marker, key, pinned: wantsPin(ac), seenAt: Date.now(), missing: false };
+    return { marker, key: iconKey(ac, selected), pinned: wantsPin(ac), seenAt: Date.now(), missing: false };
   }
 
   // Applies icon, z-order and layer (cluster or pinned) for one aircraft.
@@ -61,8 +74,7 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
   function place(entry, ac, batch) {
     const { marker } = entry;
     marker.aircraft = ac;
-    const { key, icon } = iconFor(ac, ac.hex === selectedHex);
-    if (entry.key !== key) { marker.setIcon(icon); entry.key = key; }
+    refreshIcon(entry, ac, ac.hex === selectedHex);
     const pin = wantsPin(ac);
     marker.setZIndexOffset(pin ? 1000 : 0);
     if (entry.pinned) pinned.removeLayer(marker);
@@ -95,9 +107,12 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
         (entry.pinned ? batch.pin : batch.in).push(entry.marker);
       } else if (entry.pinned && wantsPin(ac)) {
         entry.marker.aircraft = ac;
-        const { key, icon } = iconFor(ac, ac.hex === selectedHex);
-        if (entry.key !== key) { entry.marker.setIcon(icon); entry.key = key; }
+        refreshIcon(entry, ac, ac.hex === selectedHex);
         entry.marker.setLatLng([ac.lat, ac.lon]);
+      } else if (!entry.pinned && !wantsPin(ac) && samePos(entry.marker, ac)) {
+        // Stays in the cluster and has not moved: no need to take it out and put it back.
+        entry.marker.aircraft = ac;
+        refreshIcon(entry, ac, false);
       } else {
         place(entry, ac, batch);
       }
@@ -133,8 +148,7 @@ export function createAircraftLayer(map, { onUpdate, onSelect, onSelectedUpdate 
     if (!entry) return;
     entry.seenAt = Date.now();
     entry.marker.aircraft = ac;
-    const { key, icon } = iconFor(ac, true);
-    if (entry.key !== key) { entry.marker.setIcon(icon); entry.key = key; }
+    refreshIcon(entry, ac, true);
     entry.marker.setLatLng([ac.lat, ac.lon]);
     reportSelected();
   }

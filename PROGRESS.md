@@ -266,6 +266,24 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Earlier suggested next step: a link-only "Webcams" button (like `js/atc.js`) to a Windy map centred on the airport,
   with embedding as a later step.
 
+## Code review (2026-11-08)
+- Worker: routes that spend a key's quota or credits (`/flighttimes`, `/transit`, `/webcams`, `/opensky`) now answer 403
+  unless the Origin is in `ALLOWED_ORIGINS` (before, CORS only hid the answer from other sites; curl could drain the
+  AeroDataBox quota with random callsigns). Spoofable by a determined client, but stops casual use. `/opensky-check`
+  removed (public, cost credits on every call). Worker redeployed from the sandbox (script only, secrets kept) on
+  2026-11-08 and checked live: other/no Origin → 403, app Origin → `/webcams` 200 (2 cams near LGTS), `/opensky-check` 404,
+  METAR 200. The version live before was older than the repo (no `/webcams` route), so the Cameras tab now has its route.
+  `/flighttimes` answers 503: no `AERODATABOX_KEY` secret is set on the Worker (only OpenSky, Transitland, Windy).
+- `liveQuery()`: a 404 on an area query now counts as a source failure (next source tried) instead of an empty map;
+  for callsign/registration/hex lookups 404 still means "not found". New test in `tests/live-sources.test.mjs`.
+- Aircraft layer: clustered aircraft that did not move are no longer taken out of the cluster and re-added on every
+  poll; divIcons are only built when an aircraft's look changes.
+- Smaller: no polling scheduled while the page is hidden; forecast wind shows no "N" when the direction is missing;
+  the api.js cache drops expired entries every 5 min; the airport ICAO index for the progress bar is built once;
+  the airport layer redraws once per zoom (not twice); the service worker skips re-saving files with an unchanged ETag.
+- Checked with Playwright (mocked live data, Leaflet from npm because unpkg is blocked in the sandbox): markers, moves,
+  emergency chip, selection across refreshes, no page errors.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

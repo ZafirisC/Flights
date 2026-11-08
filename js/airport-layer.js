@@ -50,5 +50,5 @@ export function initAirportLayer(map, { onSelect } = {}) {
       refresh();
     })
     .catch(() => { /* search shows its own message; the map works without airport dots */ });
-  map.on('moveend zoomend', refresh);
+  map.on('moveend', refresh); // also fires after every zoom
 }

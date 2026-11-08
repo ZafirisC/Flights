@@ -26,13 +26,21 @@ async function networkFirst(req) {
   const key = req.mode === 'navigate' ? new URL(req.url).pathname : req;
   try {
     const res = await fetch(req, { cache: 'no-cache' });
-    if (res.ok) cache.put(key, res.clone());
+    if (res.ok && !(await unchanged(cache, key, res))) cache.put(key, res.clone());
     return res;
   } catch (err) {
     const hit = await cache.match(key);
     if (hit) return hit;
     throw err;
   }
+}
+
+// Same ETag as the stored copy: skip re-writing it (airports.json alone is 1.5 MB on every page load).
+async function unchanged(cache, key, res) {
+  const tag = res.headers.get('ETag');
+  if (!tag) return false;
+  const old = await cache.match(key);
+  return old?.headers.get('ETag') === tag;
 }
 
 async function cacheFirst(req) {

@@ -13,10 +13,11 @@ CORS proxy for the sources Phase 2 found blocked. Only these routes are forwarde
 | `/flighttimes/{callsign}` | AeroDataBox (RapidAPI), needs secret `AERODATABOX_KEY`; answer trimmed | 15 min (1 h pause after 401/403/429) |
 | `/transit/{lat}/{lon}` | Transitland v2 (stops → departures), needs secret `TRANSITLAND_KEY`; trimmed | 2 min (1 h pause after 401/403/429) |
 | `/webcams?lat=&lon=&radius=` (km, 1–250) | Windy Webcams API v3, needs secret `WINDY_API_KEY`; answer trimmed to id/title/place/player URLs | 10 min |
-| `/opensky-check` | Diagnostic: secrets set? OpenSky login and data request result + time (no secrets shown; costs 1 credit) | — |
 | `/health` | — | — |
 
 Allowed origins: `https://zafirisc.github.io`, `http://localhost:8000` (edit `ALLOWED_ORIGINS` in `worker.js`).
+Routes that use a key or credits (`/flighttimes`, `/transit`, `/webcams`, `/opensky`) answer 403 to any other Origin,
+so calling them from curl or another site no longer works.
 Secret (v1.1 Phase 3): `AERODATABOX_KEY` = your RapidAPI key, subscribed to AeroDataBox **Basic (free)**.
 Without it `/flighttimes` answers 503 and the app simply hides the times.
 

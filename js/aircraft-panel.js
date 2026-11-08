@@ -148,7 +148,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
       ${fc?.length ? `<table class="fc"><tr><th>Local</th><th>Sky</th><th>Temp</th><th>Wind</th><th>Rain</th></tr>
         ${fc.map((h) => `<tr><td>${esc(h.time.slice(11, 16))}</td><td>${esc(weatherText(h.code))}</td>
           <td>${h.temp !== null ? `${Math.round(h.temp)}°C` : '–'}</td>
-          <td>${h.windKt !== null ? `${compass(h.windDir)} ${Math.round(h.windKt)} kt` : '–'}</td>
+          <td>${h.windKt !== null ? `${h.windDir !== null ? `${compass(h.windDir)} ` : ''}${Math.round(h.windKt)} kt` : '–'}</td>
           <td>${h.precipProb !== null ? `${h.precipProb}%` : '–'}</td></tr>`).join('')}</table>`
         : row('Forecast', null)}
       ${fc?.length ? '<div class="note">Forecast: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a></div>' : ''}`);

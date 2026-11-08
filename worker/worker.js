@@ -6,6 +6,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8000',
 ];
 
+const KEYED = /^\/(flighttimes|transit|webcams|opensky)(\/|$)/;
+
 const NUM = '-?\\d+(?:\\.\\d+)?';
 const ROUTES = [
   // Live positions: /v2/point/{lat}/{lon}/{radius_nm}; search/share: /v2/callsign/{callsign}, /v2/reg/{registration}
@@ -242,41 +244,6 @@ async function openSkyToken(env) {
   }
 }
 
-// Diagnostic for /opensky-check: which step fails (secrets, login, data) and how long each took. No secrets in the answer.
-async function openSkyCheck(env) {
-  const step = async (fn) => {
-    const t = Date.now();
-    try {
-      const res = await fn();
-      return { result: res.ok ? 'ok' : `HTTP ${res.status}`, ms: Date.now() - t };
-    } catch (err) {
-      return { result: err.name === 'TimeoutError' ? 'timeout' : `error: ${err.message}`, ms: Date.now() - t };
-    }
-  };
-  const out = { secrets: !!(env.OPENSKY_CLIENT_ID && env.OPENSKY_CLIENT_SECRET) };
-  let token = null;
-  if (out.secrets) {
-    out.login = await step(async () => {
-      const res = await fetch(OPENSKY_TOKEN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'client_credentials', client_id: env.OPENSKY_CLIENT_ID, client_secret: env.OPENSKY_CLIENT_SECRET,
-        }),
-        signal: AbortSignal.timeout(15000),
-      });
-      if (res.ok) token = (await res.json()).access_token;
-      return res;
-    });
-  }
-  // Small box (1 credit) around Thessaloniki.
-  out.data = await step(() => fetch('https://opensky-network.org/api/states/all?lamin=40&lomin=22&lamax=41&lomax=23', {
-    headers: { 'User-Agent': USER_AGENT, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    signal: AbortSignal.timeout(15000),
-  }));
-  return out;
-}
-
 const USER_AGENT = 'Flights PWA (https://github.com/ZafirisC/Flights)';
 
 function corsHeaders(origin) {
@@ -305,7 +272,9 @@ export default {
 
     const url = new URL(request.url);
     if (url.pathname === '/' || url.pathname === '/health') return reply(200, { ok: true }, origin);
-    if (url.pathname === '/opensky-check') return reply(200, await openSkyCheck(env), origin);
+    // Routes that spend a key's quota or credits answer only the app's own pages. Not proof against a client that fakes
+    // the Origin header, but it stops other websites and casual scripts from using up the free quotas.
+    if (KEYED.test(url.pathname) && !ALLOWED_ORIGINS.includes(origin)) return reply(403, { error: 'Origin not allowed' }, origin);
 
     const tr = url.pathname.match(/^\/transit\/(-?\d{1,2}\.\d{1,3})\/(-?\d{1,3}\.\d{1,3})$/);
     if (tr) return transit(tr[1], tr[2], env, ctx, origin);

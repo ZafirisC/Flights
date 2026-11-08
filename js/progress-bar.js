@@ -6,6 +6,12 @@ import { PLANE_PATH } from './plane-icon.js';
 
 const PLANE_PX = 22; // keeps the plane inside the bar at 0% and 100%
 
+// ICAO → airport, built once per session (not on every panel open).
+let indexPromise = null;
+const airportIndex = () => (indexPromise ??= fetchAirports()
+  .then((list) => new Map(list.filter((a) => a.icao).map((a) => [a.icao, a])))
+  .catch((err) => { indexPromise = null; throw err; }));
+
 // 7500000 → "2h 05m", 2400000 → "40m".
 export function formatDuration(ms) {
   const min = Math.max(0, Math.round(ms / 60000));
@@ -77,8 +83,8 @@ export function createFlightProgress(el, { getTrack }) {
   let max = 0; // highest % so far
   let built = false;
 
-  fetchAirports()
-    .then((list) => { index = new Map(list.filter((a) => a.icao).map((a) => [a.icao, a])); render(); })
+  airportIndex()
+    .then((m) => { index = m; render(); })
     .catch(() => { /* the adsbdb route still has coordinates */ });
 
   function render() {
