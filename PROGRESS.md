@@ -301,6 +301,12 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Checked with Playwright (mocked data): planes move along their track, parked ones stay, off-screen aircraft not drawn,
   off-screen emergency still drawn + chip, ring/pulse follow, no page errors. Not yet felt on a real iPhone.
 
+## Small airports on the map (2026-11-08, user request)
+- `js/airport-layer.js` now shows every airport in `data/airports.json` that has an ICAO or IATA code: large at all zooms,
+  medium from zoom 8 (now also the 708 without an IATA code), small from zoom 9 (816, smaller dot). Small = the build
+  script's selection (scheduled service + a code); other small airfields are not in the data (user chose not to add them).
+  Checked with Playwright: Kastoria (LGKA, small) hidden at zoom 8, shown at zoom 9, tap opens its panel.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
