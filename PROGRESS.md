@@ -270,7 +270,10 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Worker: routes that spend a key's quota or credits (`/flighttimes`, `/transit`, `/webcams`, `/opensky`) now answer 403
   unless the Origin is in `ALLOWED_ORIGINS` (before, CORS only hid the answer from other sites; curl could drain the
   AeroDataBox quota with random callsigns). Spoofable by a determined client, but stops casual use. `/opensky-check`
-  removed (public, cost credits on every call). **Worker must be redeployed for both.**
+  removed (public, cost credits on every call). Worker redeployed from the sandbox (script only, secrets kept) on
+  2026-11-08 and checked live: other/no Origin → 403, app Origin → `/webcams` 200 (2 cams near LGTS), `/opensky-check` 404,
+  METAR 200. The version live before was older than the repo (no `/webcams` route), so the Cameras tab now has its route.
+  `/flighttimes` answers 503: no `AERODATABOX_KEY` secret is set on the Worker (only OpenSky, Transitland, Windy).
 - `liveQuery()`: a 404 on an area query now counts as a source failure (next source tried) instead of an empty map;
   for callsign/registration/hex lookups 404 still means "not found". New test in `tests/live-sources.test.mjs`.
 - Aircraft layer: clustered aircraft that did not move are no longer taken out of the cluster and re-added on every
