@@ -6,6 +6,7 @@ import { decodeMetar, formatTaf } from './metar.js';
 import { airportTraffic } from './airport-traffic.js';
 import { localTime } from './localtime.js';
 import { liveAtcLink } from './atc.js';
+import { createCameras } from './webcams.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -90,6 +91,7 @@ export function initAirportPanel(map, layer) {
   let marker = null;
   let clock = null;
   let transport = null; // { stops, departures } for the open airport
+  let cameras = null;
 
   const yieldPanel = () => close();
   const body = () => el.querySelector('[data-body]');
@@ -98,6 +100,7 @@ export function initAirportPanel(map, layer) {
     const b = body();
     if (!b) return;
     el.querySelectorAll('.tabs button').forEach((btn) => btn.classList.toggle('on', btn.dataset.tab === tab));
+    if (tab === 'cameras') { cameras.render(b); return; }
     if (tab === 'weather') { b.innerHTML = 'Loading…'; loadWeather(token); return; }
     if (tab === 'transport') { b.innerHTML = transportHtml(transport, apt.tz); loadTransport(token); return; }
     if (!traffic) { b.innerHTML = 'Looking up live traffic and routes…'; return; }
@@ -140,7 +143,7 @@ export function initAirportPanel(map, layer) {
     } catch {
       if (t === token) traffic = { error: true };
     }
-    if (t === token && tab !== 'weather') renderBody();
+    if (t === token && (tab === 'departures' || tab === 'arrivals')) renderBody();
   }
 
   function schedule(t) {
@@ -160,6 +163,7 @@ export function initAirportPanel(map, layer) {
     traffic = null;
     transport = null;
     tab = 'departures';
+    cameras = createCameras(a);
     const codes = [a.icao, a.iata].filter(Boolean).join(' / ');
     el.innerHTML = `
       <div class="panel-head">
@@ -178,6 +182,7 @@ export function initAirportPanel(map, layer) {
         <button type="button" data-tab="arrivals">Arrivals</button>
         <button type="button" data-tab="weather">Weather</button>
         <button type="button" data-tab="transport">Transport</button>
+        <button type="button" data-tab="cameras">Cameras</button>
       </div>
       <div data-body></div>`;
     el.querySelector('.panel-close').addEventListener('click', () => close());
@@ -218,6 +223,8 @@ export function initAirportPanel(map, layer) {
     releasePanel(yieldPanel);
     marker?.remove();
     marker = null;
+    cameras?.dispose();
+    cameras = null;
     el.innerHTML = '';
     hidePanel();
   }

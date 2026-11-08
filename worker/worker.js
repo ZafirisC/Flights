@@ -178,6 +178,42 @@ async function transit(lat, lon, env, ctx, origin) {
   }
 }
 
+// Windy Webcams: /webcams?lat=&lon=&radius= (km, 1-250). Key in secret WINDY_API_KEY; answer trimmed; cached 10 min.
+const WINDY_TTL = 600;
+async function windyWebcams(url, env, ctx, origin) {
+  const lat = Number(url.searchParams.get('lat'));
+  const lon = Number(url.searchParams.get('lon'));
+  const radius = Math.round(Number(url.searchParams.get('radius')));
+  if (!(Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && radius >= 1 && radius <= 250)) return reply(400, { error: 'Bad parameters' }, origin);
+  if (!env.WINDY_API_KEY) return reply(503, { error: 'Webcams not configured' }, origin);
+  const key = `w:${lat.toFixed(3)},${lon.toFixed(3)},${radius}`;
+  const cached = await cacheGet(env, key);
+  if (cached) return json(cached, origin);
+  let upstream;
+  try {
+    upstream = await fetch(`https://api.windy.com/webcams/api/v3/webcams?nearby=${lat.toFixed(4)},${lon.toFixed(4)},${radius}`
+      + '&include=location,player,urls&limit=50&lang=en', {
+      headers: { 'x-windy-api-key': env.WINDY_API_KEY, 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(10000),
+    });
+  } catch (err) {
+    return reply(502, { error: `Upstream unreachable: ${err.message}` }, origin);
+  }
+  if (!upstream.ok) return reply(502, { error: `Upstream HTTP ${upstream.status}` }, origin);
+  const data = await upstream.json().catch(() => ({}));
+  const text = JSON.stringify({
+    total: data.total || 0,
+    webcams: (data.webcams || []).filter((w) => w.status === 'active').map((w) => ({
+      id: w.webcamId, title: w.title,
+      city: w.location?.city, country: w.location?.country, lat: w.location?.latitude, lon: w.location?.longitude,
+      live: w.player?.live || null, day: w.player?.day || null,
+      page: w.urls?.detail || null,
+    })),
+  });
+  ctx.waitUntil(cachePut(env, key, text, WINDY_TTL));
+  return json(text, origin);
+}
+
 function json(text, origin) {
   return new Response(text, { headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) } });
 }
@@ -273,6 +309,7 @@ export default {
 
     const tr = url.pathname.match(/^\/transit\/(-?\d{1,2}\.\d{1,3})\/(-?\d{1,3}\.\d{1,3})$/);
     if (tr) return transit(tr[1], tr[2], env, ctx, origin);
+    if (url.pathname === '/webcams') return windyWebcams(url, env, ctx, origin);
 
     const times = url.pathname.match(/^\/flighttimes\/([^/]+)$/);
     if (times) return flightTimes(times[1].toUpperCase(), env, ctx, origin);
