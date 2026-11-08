@@ -65,11 +65,12 @@ export function startTraffic(map, layer) {
 
   function refreshNow() {
     refresh();
-    schedule();
+    if (!document.hidden) schedule(); // hidden: polling resumes on visibilitychange
   }
 
   map.on('moveend', () => {
     clearTimeout(moveTimer);
+    if (document.hidden) return;
     moveTimer = setTimeout(refreshNow, MOVE_DEBOUNCE_MS);
   });
 

@@ -34,8 +34,16 @@ export async function getJSON(url, { timeout = 10000 } = {}) {
 }
 
 // Cached GET: one request per key per `ttl` ms (Infinity = whole session). 404 → null.
-const cache = new Map(); // key → { at, promise }
+const cache = new Map(); // key → { at, ttl, promise }
+let lastPrune = Date.now();
+function pruneCache() { // drop expired entries now and then, so a long session does not keep every answer
+  const now = Date.now();
+  if (now - lastPrune < 5 * 60000) return;
+  lastPrune = now;
+  for (const [key, e] of cache) if (now - e.at >= e.ttl) cache.delete(key);
+}
 function cachedJSON(url, ttl) {
+  pruneCache();
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < ttl) return hit.promise;
   const promise = getJSON(url).catch((err) => {
@@ -43,7 +51,7 @@ function cachedJSON(url, ttl) {
     cache.delete(url); // retry next time
     throw err;
   });
-  cache.set(url, { at: Date.now(), promise });
+  cache.set(url, { at: Date.now(), ttl, promise });
   return promise;
 }
 
@@ -167,7 +175,8 @@ export function openSkyBox(lat, lon, radiusNm) {
     + `&lamax=${f(lat + dLat, -90, 90)}&lomax=${f(lon + dLon, -180, 180)}`;
 }
 
-// First source that answers; 404 counts as "not found" (empty list), not as a failure.
+// First source that answers. For a lookup (callsign / registration / hex) 404 means "not found" (empty list);
+// for an area query it is a failure, so the next source is tried instead of emptying the map.
 async function liveQuery(kind, ...args) {
   const tried = [];
   for (const src of LIVE) {
@@ -182,7 +191,7 @@ async function liveQuery(kind, ...args) {
       delete lastError[src.name];
       return list;
     } catch (err) {
-      if (err.status === 404) return [];
+      if (err.status === 404 && kind !== 'point') return [];
       lastError[src.name] = err.status ? `HTTP ${err.status}` : (err.name === 'AbortError' ? 'timeout' : 'network error');
       backoffUntil[src.name] = Date.now() + (BACKOFF_MS[err.status] || BACKOFF_MS.other);
       tried.push(`${src.label}: ${lastError[src.name]}`);

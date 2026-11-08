@@ -54,3 +54,14 @@ test('OpenSky is used for positions but never for callsign search', async () => 
   const list = await fetchAircraft(40.5, 22.9, 50);
   assert.equal(list[0].callsign, 'OAL98');
 });
+
+test('404 is "not found" for a lookup, but a failure for an area query (next source is tried)', async () => {
+  const api = await import('../js/api.js?fresh-404'); // own module copy: no backoff left over from the tests above
+  let calls = mockFetch({ '/adsbfi/': 404, '/adsblol/': adsb });
+  assert.equal(await api.fetchFlightByCallsign('AEE123'), null);
+  assert.equal(calls.length, 1);
+  calls = mockFetch({ '/adsbfi/': 404, '/adsblol/': adsb });
+  const list = await api.fetchAircraft(40.5, 22.9, 50);
+  assert.equal(list[0].hex, 'abc123');
+  assert.match(calls.at(-1), /adsblol/);
+});
