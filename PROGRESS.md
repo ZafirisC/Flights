@@ -307,6 +307,16 @@ the points marked "unverified" still need a check with those hosts allowed.
   script's selection (scheduled service + a code); other small airfields are not in the data (user chose not to add them).
   Checked with Playwright: Kastoria (LGKA, small) hidden at zoom 8, shown at zoom 9, tap opens its panel.
 
+## Ticket look (2026-11-13, user request) — code done, awaiting PC + iPhone test
+- Tried three alternative styles (Glass, Cockpit, Ticket); the user picked Ticket. It is now the only look, folded into
+  `css/style.css` (variables at the top, "Ticket look" section at the end). Glass, Cockpit, the old Classic look,
+  `js/skin.js` and the Style button are removed.
+- Bright (light) by default, also when the device is in dark mode. `js/theme.js` is now a two-state button
+  ("☾ Dark" / "☀ Light"), saved in `localStorage` (`flights.theme`); an old saved "auto" opens as light.
+  Dark mode keeps the inverted map tiles. SPEC §10 updated; manifest and status-bar colours match the look.
+- Checked in headless Chromium with mocked network (PC 1280×800 and iPhone 13, light and dark, aircraft panel).
+  Not checked: airport panel tabs/lists and webcams, real map tiles, real iPhone.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
