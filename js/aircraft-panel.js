@@ -43,7 +43,7 @@ function metarHtml(raw) {
     <details class="raw-metar"><summary>Raw METAR</summary><code>${esc(raw)}</code></details>`;
 }
 
-export function initAircraftPanel(map, { onClose } = {}) {
+export function initAircraftPanel(map, { onClose, onAirport } = {}) {
   const el = document.getElementById('panel-content');
   let hex = null;
   let token = 0; // ignores async results for a panel that was replaced
@@ -165,7 +165,7 @@ export function initAircraftPanel(map, { onClose } = {}) {
     render(ac);
     showPanel();
     revealOnMap(map, [ac.lat, ac.lon]);
-    progress = createFlightProgress(sec('progress'), { getTrack: track.points });
+    progress = createFlightProgress(sec('progress'), { getTrack: track.points, onAirport });
     progress.update(ac);
     track.start(ac).then(() => { if (t === token) progress?.refresh(); }); // the history may move the plane
     ticker = setInterval(tick, 1000);

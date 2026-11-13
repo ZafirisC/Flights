@@ -317,6 +317,13 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Checked in headless Chromium with mocked network (PC 1280×800 and iPhone 13, light and dark, aircraft panel).
   Not checked: airport panel tabs/lists and webcams, real map tiles, real iPhone.
 
+## Route codes open the airport (2026-11-13, user request)
+- In the aircraft panel's progress bar, the departure/destination codes (e.g. ATH — AMS) are now buttons: a tap opens
+  that airport's panel (replacing the aircraft panel). Only codes found in `data/airports.json` are tappable (accent
+  colour, dotted underline); unknown ones stay plain text. Wired via an `onAirport` option
+  (`main.js` → `aircraft-panel.js` → `progress-bar.js`).
+- Checked in headless Chromium: AMS button enabled, tap passes the Schiphol record. Not checked on a real iPhone.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
