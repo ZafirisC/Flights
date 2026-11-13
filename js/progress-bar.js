@@ -31,13 +31,20 @@ export function formatClock(ms, tz) {
 // One end of the route. The AeroDataBox leg wins when its ICAO is in our airport list, else the adsbdb route.
 function endOf(legEnd, routeEnd, index) {
   const a = legEnd?.icao ? index?.get(legEnd.icao) : null;
-  if (a) return { iata: a.iata || legEnd.iata || a.icao, lat: a.lat, lon: a.lon, tz: a.tz || null };
+  if (a) return { iata: a.iata || legEnd.iata || a.icao, lat: a.lat, lon: a.lon, tz: a.tz || null, apt: a };
   if (routeEnd) {
     const b = routeEnd.icao ? index?.get(routeEnd.icao) : null;
-    return { iata: routeEnd.iata || routeEnd.icao || '–', lat: routeEnd.lat, lon: routeEnd.lon, tz: b?.tz || null };
+    return { iata: routeEnd.iata || routeEnd.icao || '–', lat: routeEnd.lat, lon: routeEnd.lon, tz: b?.tz || null, apt: b || null };
   }
   const code = legEnd?.iata || legEnd?.icao;
-  return code ? { iata: code, lat: null, lon: null, tz: null } : null;
+  return code ? { iata: code, lat: null, lon: null, tz: null, apt: null } : null;
+}
+
+// A route code: a button that opens the airport panel when the airport is known.
+function setCode(btn, end, which, clickable) {
+  btn.textContent = end?.iata ?? '–';
+  btn.disabled = !clickable || !end?.apt;
+  btn.title = btn.disabled ? '' : `Open ${which} airport: ${end.apt.name}`;
 }
 
 // Texts for each state: { main, sub }.
@@ -62,19 +69,20 @@ function describe(r, origin, dest) {
 
 const SKELETON = `
   <div class="fp-row">
-    <span class="fp-code" data-from></span>
+    <button type="button" class="fp-code" data-from disabled></button>
     <div class="fp-bar" role="progressbar" aria-label="Flight progress" aria-valuemin="0" aria-valuemax="100">
       <div class="fp-fill"></div>
       <svg class="fp-plane" viewBox="0 0 24 24" width="${PLANE_PX}" height="${PLANE_PX}" aria-hidden="true">
         <path d="${PLANE_PATH}" transform="rotate(90 12 12)"/></svg>
     </div>
-    <span class="fp-code" data-to></span>
+    <button type="button" class="fp-code" data-to disabled></button>
   </div>
   <div class="fp-main"></div>
   <div class="fp-sub"></div>`;
 
 // `getTrack()` → [[lat, lon], ...] since take-off (js/track.js). Call update() with every new position.
-export function createFlightProgress(el, { getTrack }) {
+// `onAirport(airport)` runs when the user taps a route code (only codes found in data/airports.json are tappable).
+export function createFlightProgress(el, { getTrack, onAirport }) {
   let route = null;
   let leg = null; // raw AeroDataBox flight
   let ft = null; // flightTimes(leg)
@@ -82,6 +90,13 @@ export function createFlightProgress(el, { getTrack }) {
   let index = null; // ICAO → airport
   let max = 0; // highest % so far
   let built = false;
+  const ends = { from: null, to: null }; // airports behind the two codes
+
+  el.addEventListener('click', (e) => {
+    const btn = e.target.closest('.fp-code');
+    const apt = btn && ends[btn.hasAttribute('data-from') ? 'from' : 'to'];
+    if (apt && onAirport) onAirport(apt);
+  });
 
   airportIndex()
     .then((m) => { index = m; render(); })
@@ -104,8 +119,10 @@ export function createFlightProgress(el, { getTrack }) {
 
     const root = el.firstElementChild;
     root.dataset.state = r.state;
-    root.querySelector('[data-from]').textContent = origin?.iata ?? '–';
-    root.querySelector('[data-to]').textContent = dest?.iata ?? '–';
+    ends.from = origin?.apt ?? null;
+    ends.to = dest?.apt ?? null;
+    setCode(root.querySelector('[data-from]'), origin, 'departure', !!onAirport);
+    setCode(root.querySelector('[data-to]'), dest, 'destination', !!onAirport);
     root.querySelector('.fp-fill').style.width = pos;
     root.querySelector('.fp-plane').style.left = pos;
     const bar = root.querySelector('.fp-bar');

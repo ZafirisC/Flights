@@ -28,7 +28,8 @@ async function start() {
   const map = initMap('map');
   initTheme(map);
   addAltitudeLegend(map);
-  const panel = initAircraftPanel(map, { onClose: () => layer.select(null) });
+  let airportPanel = null; // created after the aircraft layer; a tap on a route code before that does nothing
+  const panel = initAircraftPanel(map, { onClose: () => layer.select(null), onAirport: (a) => airportPanel?.open(a) });
   const layer = createAircraftLayer(map, {
     onUpdate: (aircraft) => renderAlerts(aircraft, (hex) => layer.select(hex)),
     onSelect: (ac) => (ac ? panel.open(ac) : panel.close({ silent: true })),
@@ -45,7 +46,7 @@ async function start() {
   const traffic = startTraffic(map, layer);
   initRefresh(map, layer, traffic);
   initLayers(map);
-  const airportPanel = initAirportPanel(map, layer);
+  airportPanel = initAirportPanel(map, layer);
   initSearch(document.getElementById('search'), map, layer, { onAirport: (a) => airportPanel.open(a) });
   initAirportLayer(map, { onSelect: (a) => airportPanel.open(a) });
 }

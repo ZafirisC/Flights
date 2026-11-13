@@ -349,6 +349,9 @@ html, body {
 #panel .fp-row { display: flex; align-items: center; gap: 10px; }
 #panel .fp-code { font-weight: 700; font-size: 17px; letter-spacing: 0.5px; min-width: 2.6em; }
 #panel .fp-code:last-child { text-align: right; }
+#panel button.fp-code { padding: 4px 0; border: 0; background: none; color: inherit; font-family: inherit; line-height: inherit; text-align: left; }
+#panel button.fp-code:not(:disabled) { cursor: pointer; color: var(--accent); text-decoration: underline dotted; text-underline-offset: 4px; }
+#panel button.fp-code:disabled { opacity: 1; }
 #panel .fp-bar { position: relative; flex: 1; min-width: 0; height: 28px; /* tall touch target, 8px track below */ }
 #panel .fp-bar::before { content: ""; position: absolute; left: 0; right: 0; top: 10px; height: 8px; border-radius: 4px; background: var(--border); }
 #panel .fp-fill { position: absolute; left: 0; top: 10px; height: 8px; border-radius: 4px; background: var(--progress); max-width: 100%; }
