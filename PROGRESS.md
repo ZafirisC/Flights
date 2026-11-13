@@ -307,20 +307,15 @@ the points marked "unverified" still need a check with those hosts allowed.
   script's selection (scheduled service + a code); other small airfields are not in the data (user chose not to add them).
   Checked with Playwright: Kastoria (LGKA, small) hidden at zoom 8, shown at zoom 9, tap opens its panel.
 
-## UI styles (2026-11-13, user request) — code done, awaiting PC + iPhone test
-- Three alternative looks next to the existing one, switched with a new "Style: …" button (bottom right, above the
-  map theme toggle). Cycles Classic → Glass → Cockpit → Ticket; saved in `localStorage` (`flights.skin`).
-  Classic stays the default until one is picked.
-- `js/skin.js` sets `<html data-skin>`; each look is one CSS file scoped to it (`css/skin-glass.css`,
-  `css/skin-cockpit.css`, `css/skin-ticket.css`). No markup or panel code changed. `css/style.css`: the selected-aircraft
-  ring and the active tab now use `var(--accent)`.
-- Glass: frosted translucent surfaces, pill search, floating panel on desktop. Cockpit: always-dark monospace
-  instrument look, amber/teal (only the map follows the Auto/Dark/Light toggle). Ticket: cream paper, sunset banner
-  header, fields two per line, cards.
-- Checked in headless Chromium with mocked network (PC 1280×800 and iPhone 13, light + dark, aircraft panel and search
-  suggestions). Not checked: airport panel tabs/lists and webcams in each style, real map tiles under Glass, real iPhone.
-- Open: once a favourite is chosen, the other two files and the button can be removed and it can become the default.
-  The iOS status-bar colour (`theme-color`) still follows the map theme, not the style.
+## Ticket look (2026-11-13, user request) — code done, awaiting PC + iPhone test
+- Tried three alternative styles (Glass, Cockpit, Ticket); the user picked Ticket. It is now the only look, folded into
+  `css/style.css` (variables at the top, "Ticket look" section at the end). Glass, Cockpit, the old Classic look,
+  `js/skin.js` and the Style button are removed.
+- Bright (light) by default, also when the device is in dark mode. `js/theme.js` is now a two-state button
+  ("☾ Dark" / "☀ Light"), saved in `localStorage` (`flights.theme`); an old saved "auto" opens as light.
+  Dark mode keeps the inverted map tiles. SPEC §10 updated; manifest and status-bar colours match the look.
+- Checked in headless Chromium with mocked network (PC 1280×800 and iPhone 13, light and dark, aircraft panel).
+  Not checked: airport panel tabs/lists and webcams, real map tiles, real iPhone.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.

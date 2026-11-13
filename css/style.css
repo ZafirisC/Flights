@@ -1,35 +1,27 @@
+/* Ticket look: warm boarding-pass style. Light by default; the toggle (js/theme.js) sets data-theme="dark". */
 :root {
-  --bg: #ffffff;
-  --fg: #0f172a;
-  --muted: #64748b;
-  --surface: rgba(255, 255, 255, 0.95);
-  --border: #cbd5e1;
-  --progress: #1565c0;
+  --bg: #fffaf3;
+  --fg: #2b2118;
+  --muted: #8a7867;
+  --surface: rgba(255, 250, 243, 0.96);
+  --border: #eadfce;
+  --card: #f7eee1;
+  --accent: #e8590c;
+  --progress: #e8590c;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 }
-
-/* Dark: follows the system unless the toggle forces data-theme (js/theme.js). */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0f172a;
-    --fg: #e2e8f0;
-    --muted: #94a3b8;
-    --surface: rgba(30, 41, 59, 0.95);
-    --border: #334155;
-  --progress: #60a5fa;
-    --tile-filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
-  }
-}
 :root[data-theme="dark"] {
-  --bg: #0f172a;
-  --fg: #e2e8f0;
-  --muted: #94a3b8;
-  --surface: rgba(30, 41, 59, 0.95);
-  --border: #334155;
-  --progress: #60a5fa;
+  --bg: #1d1916;
+  --fg: #f3ebe0;
+  --muted: #ab9b8a;
+  --surface: rgba(40, 34, 29, 0.96);
+  --border: #40362d;
+  --card: #2a231e;
+  --accent: #ff8a4c;
+  --progress: #ff8a4c;
   --tile-filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
 }
 
@@ -384,3 +376,68 @@ html, body {
 #panel .camlist .cam-title { flex: 1; }
 #panel .note.warn { color: #c62828; }
 #panel .camlist input[type=checkbox] { width: 24px; height: 24px; flex: none; }
+
+/* ---- Ticket look (overrides the base rules above; :root keeps them ahead of Leaflet's own CSS) ---- */
+:root :is(body, input, button, select) {
+  font-family: ui-rounded, "SF Pro Rounded", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+:root :is(#search, #refresh, #updated, #status, #suggestions, .alt-legend, .theme-toggle, .layers-ctl) {
+  border: 0;
+  box-shadow: 0 6px 20px rgba(120, 60, 10, 0.2);
+}
+
+/* Top bar */
+:root #search { min-height: 48px; border-radius: 16px; border: 2px solid transparent; }
+:root #search:focus { outline: none; border-color: var(--accent); }
+:root #refresh {
+  width: 48px; min-height: 48px; border-radius: 16px; color: #fff;
+  background: linear-gradient(135deg, #f76707, #e64980);
+}
+:root :is(#updated, #status) { border-radius: 12px; padding: 4px 12px; }
+:root #suggestions { border-radius: 16px; }
+:root #suggestions b { color: var(--accent); }
+:root #alerts button { border-radius: 12px; }
+
+/* Map controls */
+:root :is(.theme-toggle, .layers-ctl, .alt-legend) { border-radius: 12px; }
+:root .theme-toggle { padding: 0 12px; }
+:root .leaflet-control-zoom { border: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(120, 60, 10, 0.2); }
+:root .leaflet-control-zoom a { background: var(--surface); color: var(--accent); border-bottom-color: var(--border); }
+:root .layers-menu input { accent-color: var(--accent); }
+:root #disclaimer { border-radius: 8px; }
+
+/* Panel */
+:root #panel { border: 0; box-shadow: 0 0 30px rgba(120, 60, 10, 0.25); }
+@media (max-width: 767px) {
+  :root #panel { border-radius: 22px 22px 0 0; }
+}
+/* Header: sunset banner with a ticket tear line under it */
+:root .panel-head {
+  padding: 14px 8px 14px 16px; border-radius: 16px; color: #fff;
+  background: linear-gradient(135deg, #f76707, #e64980);
+  box-shadow: 0 6px 16px rgba(230, 73, 128, 0.3);
+}
+:root .panel-title { font-size: 26px; font-weight: 800; letter-spacing: 0.02em; }
+:root .panel-sub { color: rgba(255, 255, 255, 0.9); }
+:root .panel-close { margin: -8px 0 0; color: #fff; }
+:root .panel-btn { border: 0; border-radius: 12px; background: var(--card); color: var(--accent); font-weight: 700; }
+:root #panel h3 { margin-top: 18px; padding-top: 12px; border-top: 2px dashed var(--border); color: var(--accent); }
+/* Fields: label above value, two per line */
+:root #panel .row {
+  display: inline-flex; flex-direction: column; gap: 0; width: 50%; vertical-align: top;
+  padding: 6px 10px 6px 0; border: 0;
+}
+:root #panel .row > span:first-child { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+:root #panel .row > span:last-child { text-align: left; font-weight: 700; }
+:root #panel :is(.photo img, .webcam-frame) { border-radius: 16px; }
+:root #panel .raw { border-radius: 12px; background: var(--card); }
+:root #panel .lost { border-radius: 12px; }
+:root #panel a { color: var(--accent); }
+:root #panel .fp { padding: 12px; border-radius: 16px; background: var(--card); }
+:root #panel .fp-code { font-size: 20px; font-weight: 800; }
+
+/* Airport tabs: segmented control; flight lists as cards */
+:root #panel .tabs { gap: 0; padding: 4px; border: 0; border-radius: 14px; background: var(--card); }
+:root #panel .tabs button { min-height: 38px; border: 0; border-radius: 10px; }
+:root #panel .tabs button.on { background: var(--bg); color: var(--accent); box-shadow: 0 1px 4px rgba(120, 60, 10, 0.2); }
+:root #panel ul.flights li { margin: 6px 0; padding: 8px 12px; border: 0; border-radius: 12px; background: var(--card); }

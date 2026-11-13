@@ -59,7 +59,7 @@ response shape, rate limits. The live-position source with the best result becom
 7. **Battery saver.** Stop polling when the page is hidden (`visibilitychange`), resume on return.
 8. **Clustering** at low zoom (Leaflet.markercluster).
 9. **Emergency highlight.** Squawk 7500 / 7600 / 7700 → red icon, listed first in an alert chip.
-10. **Dark map** (auto from `prefers-color-scheme`, plus a toggle).
+10. **Dark mode** (light by default, a toggle switches the app and map to dark).
 11. **Share link** to a flight: `?flight=<callsign>` opens the app on that flight.
 
 ### Settings

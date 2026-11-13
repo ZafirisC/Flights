@@ -54,8 +54,7 @@ flowchart TD
   MAIN["main.js<br/>entry, wires everything"]
 
   MAIN --> MAP["map.js<br/>Leaflet map, last view"]
-  MAIN --> THEME["theme.js<br/>Auto / Dark / Light"]
-  MAIN --> SKIN["skin.js<br/>UI style: Classic / Glass /<br/>Cockpit / Ticket"]
+  MAIN --> THEME["theme.js<br/>Light / Dark toggle"]
   MAIN --> LEG["altitude.js<br/>colour scale + legend"]
   MAIN --> TRAFFIC["traffic.js<br/>poll 12 s, viewport circle,<br/>pause when hidden"]
   MAIN --> LAYER["aircraft-layer.js<br/>markers by hex, clusters,<br/>emergencies, selection"]

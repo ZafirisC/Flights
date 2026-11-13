@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Flights</title>
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#fffaf3" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#fffaf3" media="(prefers-color-scheme: dark)" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -19,9 +19,6 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
         integrity="sha256-YSWCMtmNZNwqex4CEw1nQhvFub2lmU7vcCKP+XVwwXA=" crossorigin="" />
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="css/skin-glass.css" />
-  <link rel="stylesheet" href="css/skin-cockpit.css" />
-  <link rel="stylesheet" href="css/skin-ticket.css" />
   <!-- Start-up speed: open connections early and fetch every module in parallel instead of one import level at a time.
        Keep this list in sync with the imports (tests/preload.test.mjs checks it). -->
   <link rel="preconnect" href="https://flights-proxy.zkriaris.workers.dev" crossorigin />
@@ -52,7 +49,6 @@
   <link rel="modulepreload" href="js/refresh.js" />
   <link rel="modulepreload" href="js/search.js" />
   <link rel="modulepreload" href="js/share.js" />
-  <link rel="modulepreload" href="js/skin.js" />
   <link rel="modulepreload" href="js/status.js" />
   <link rel="modulepreload" href="js/storage.js" />
   <link rel="modulepreload" href="js/theme.js" />
