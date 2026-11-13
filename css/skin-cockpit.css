@@ -1,0 +1,82 @@
+/* Skin "Cockpit": avionics-style instrument look — dark panels, monospace, amber and teal accents.
+   Active when <html data-skin="cockpit"> (js/skin.js). The chrome is always dark; only the map follows js/theme.js. */
+:root[data-skin="cockpit"] {
+  --bg: #0b1117;
+  --fg: #d5e2ea;
+  --muted: #7a93a3;
+  --surface: rgba(11, 17, 23, 0.94);
+  --border: #263744;
+  --accent: #ffb300;
+  --progress: #35e0c2;
+}
+
+[data-skin="cockpit"] :is(body, input, button, select) {
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+[data-skin="cockpit"] :is(#search, #refresh, #updated, #status, #suggestions, .alt-legend, .theme-toggle, .layers-ctl,
+  .leaflet-control-zoom, #disclaimer, .panel-btn, .cat, #alerts button) {
+  border-radius: 3px;
+}
+[data-skin="cockpit"] :is(#search, #refresh, #updated, #status, #suggestions, .alt-legend, .theme-toggle, .layers-ctl,
+  .leaflet-control-zoom) {
+  border: 1px solid var(--border);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+/* Top bar */
+[data-skin="cockpit"] #search { box-shadow: inset 3px 0 0 var(--accent), 0 4px 14px rgba(0, 0, 0, 0.45); letter-spacing: 0.04em; }
+[data-skin="cockpit"] #search::placeholder { text-transform: uppercase; font-size: 13px; color: var(--muted); }
+[data-skin="cockpit"] #search:focus { outline: 1px solid var(--accent); }
+[data-skin="cockpit"] #refresh { color: var(--accent); }
+[data-skin="cockpit"] #updated { text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; color: var(--progress); }
+[data-skin="cockpit"] #updated::before { content: "● "; }
+[data-skin="cockpit"] #updated.stale { color: #ff5252; }
+[data-skin="cockpit"] #suggestions li.active, [data-skin="cockpit"] #suggestions li:hover { background: rgba(255, 179, 0, 0.14); }
+[data-skin="cockpit"] #suggestions b { color: var(--accent); }
+
+/* Map controls */
+[data-skin="cockpit"] :is(.theme-toggle, .layers-btn) { text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; }
+[data-skin="cockpit"] .theme-toggle { padding: 0 10px; }
+[data-skin="cockpit"] .leaflet-control-zoom a { background: var(--surface); color: var(--accent); border-bottom-color: var(--border); }
+[data-skin="cockpit"] .layers-menu input { accent-color: var(--accent); }
+[data-skin="cockpit"] .ac-icon.ac-selected .ac-glide::after { border-style: dashed; background: rgba(255, 179, 0, 0.18); }
+
+/* Panel: faint scan lines, amber edge */
+[data-skin="cockpit"] #panel {
+  border-color: var(--border);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: 100% 4px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+}
+@media (max-width: 767px) {
+  [data-skin="cockpit"] #panel { border-radius: 4px 4px 0 0; border-top: 2px solid var(--accent); }
+}
+@media (min-width: 768px) {
+  [data-skin="cockpit"] #panel { border-width: 0 0 0 2px; border-left-color: var(--accent); }
+}
+[data-skin="cockpit"] .panel-title { font-size: 26px; letter-spacing: 0.06em; color: var(--accent); text-shadow: 0 0 12px rgba(255, 179, 0, 0.35); }
+[data-skin="cockpit"] .panel-sub { text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em; }
+[data-skin="cockpit"] .panel-close { color: var(--muted); }
+[data-skin="cockpit"] .panel-btn { background: transparent; border-color: var(--accent); color: var(--accent); text-transform: uppercase; font-size: 12px; letter-spacing: 0.06em; }
+[data-skin="cockpit"] #panel h3 { margin-top: 18px; padding-bottom: 4px; border-bottom: 1px solid var(--border); color: var(--progress); letter-spacing: 0.12em; }
+[data-skin="cockpit"] #panel h3::before { content: "▸ "; color: var(--accent); }
+[data-skin="cockpit"] #panel .row { border-bottom-style: dashed; font-size: 13px; }
+[data-skin="cockpit"] #panel .row > span:first-child { text-transform: uppercase; font-size: 11px; letter-spacing: 0.06em; padding-top: 2px; }
+[data-skin="cockpit"] #panel .row > span:last-child { color: #f2f8fb; font-variant-numeric: tabular-nums; }
+[data-skin="cockpit"] #panel :is(.photo img, .raw, .lost, .webcam-frame) { border-radius: 3px; }
+[data-skin="cockpit"] #panel .photo img { border: 1px solid var(--border); }
+[data-skin="cockpit"] #panel .raw { color: var(--progress); background: rgba(53, 224, 194, 0.07); border: 1px solid var(--border); }
+[data-skin="cockpit"] #panel a { color: var(--accent); }
+[data-skin="cockpit"] #panel .fp-code { color: var(--accent); }
+[data-skin="cockpit"] #panel .fp-bar::before, [data-skin="cockpit"] #panel .fp-fill { height: 4px; top: 12px; border-radius: 0; }
+[data-skin="cockpit"] #panel .fp-fill { box-shadow: 0 0 8px var(--progress); }
+
+/* Airport tabs */
+[data-skin="cockpit"] #panel .tabs button { text-transform: uppercase; font-size: 12px; letter-spacing: 0.06em; }
+[data-skin="cockpit"] #panel .tabs button.on { color: var(--accent); background: rgba(255, 179, 0, 0.08); }
+[data-skin="cockpit"] #panel ul.flights li { border-bottom-style: dashed; }
+[data-skin="cockpit"] #panel ul.flights li:hover { background: rgba(255, 179, 0, 0.08); }
+[data-skin="cockpit"] #panel ul.flights .live { color: var(--progress); }
+
+/* The disclaimer stays in the narrower system font so it does not run under the map attribution */
+[data-skin="cockpit"] #disclaimer { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }

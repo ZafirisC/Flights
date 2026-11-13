@@ -1,0 +1,98 @@
+/* Skin "Ticket": warm boarding-pass look — cream paper, sunset banner, rounded cards, two-column fields.
+   Active when <html data-skin="ticket"> (js/skin.js). Light and dark follow js/theme.js. */
+:root[data-skin="ticket"] {
+  --bg: #fffaf3;
+  --fg: #2b2118;
+  --muted: #8a7867;
+  --surface: rgba(255, 250, 243, 0.96);
+  --border: #eadfce;
+  --card: #f7eee1;
+  --accent: #e8590c;
+  --progress: #e8590c;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="ticket"]:not([data-theme="light"]) {
+    --bg: #1d1916;
+    --fg: #f3ebe0;
+    --muted: #ab9b8a;
+    --surface: rgba(40, 34, 29, 0.96);
+    --border: #40362d;
+    --card: #2a231e;
+    --accent: #ff8a4c;
+    --progress: #ff8a4c;
+  }
+}
+:root[data-skin="ticket"][data-theme="dark"] {
+  --bg: #1d1916;
+  --fg: #f3ebe0;
+  --muted: #ab9b8a;
+  --surface: rgba(40, 34, 29, 0.96);
+  --border: #40362d;
+  --card: #2a231e;
+  --accent: #ff8a4c;
+  --progress: #ff8a4c;
+}
+
+[data-skin="ticket"] :is(body, input, button, select) {
+  font-family: ui-rounded, "SF Pro Rounded", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+[data-skin="ticket"] :is(#search, #refresh, #updated, #status, #suggestions, .alt-legend, .theme-toggle, .layers-ctl) {
+  border: 0;
+  box-shadow: 0 6px 20px rgba(120, 60, 10, 0.2);
+}
+
+/* Top bar */
+[data-skin="ticket"] #search { min-height: 48px; border-radius: 16px; border: 2px solid transparent; }
+[data-skin="ticket"] #search:focus { outline: none; border-color: var(--accent); }
+[data-skin="ticket"] #refresh {
+  width: 48px; min-height: 48px; border-radius: 16px; color: #fff;
+  background: linear-gradient(135deg, #f76707, #e64980);
+}
+[data-skin="ticket"] :is(#updated, #status) { border-radius: 12px; padding: 4px 12px; }
+[data-skin="ticket"] #suggestions { border-radius: 16px; }
+[data-skin="ticket"] #suggestions b { color: var(--accent); }
+[data-skin="ticket"] #alerts button { border-radius: 12px; }
+
+/* Map controls */
+[data-skin="ticket"] :is(.theme-toggle, .layers-ctl, .alt-legend) { border-radius: 12px; }
+[data-skin="ticket"] .theme-toggle { padding: 0 12px; }
+[data-skin="ticket"] .leaflet-control-zoom { border: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(120, 60, 10, 0.2); }
+[data-skin="ticket"] .leaflet-control-zoom a { background: var(--surface); color: var(--accent); border-bottom-color: var(--border); }
+[data-skin="ticket"] .layers-menu input { accent-color: var(--accent); }
+[data-skin="ticket"] #disclaimer { border-radius: 8px; }
+
+/* Panel */
+[data-skin="ticket"] #panel { border: 0; box-shadow: 0 0 30px rgba(120, 60, 10, 0.25); }
+@media (max-width: 767px) {
+  [data-skin="ticket"] #panel { border-radius: 22px 22px 0 0; }
+}
+/* Header: sunset banner with a ticket tear line under it */
+[data-skin="ticket"] .panel-head {
+  padding: 14px 8px 14px 16px; border-radius: 16px; color: #fff;
+  background: linear-gradient(135deg, #f76707, #e64980);
+  box-shadow: 0 6px 16px rgba(230, 73, 128, 0.3);
+}
+[data-skin="ticket"] .panel-title { font-size: 26px; font-weight: 800; letter-spacing: 0.02em; }
+[data-skin="ticket"] .panel-sub { color: rgba(255, 255, 255, 0.9); }
+[data-skin="ticket"] .panel-close { margin: -8px 0 0; color: #fff; }
+[data-skin="ticket"] .panel-btn { border: 0; border-radius: 12px; background: var(--card); color: var(--accent); font-weight: 700; }
+[data-skin="ticket"] #panel h3 { margin-top: 18px; padding-top: 12px; border-top: 2px dashed var(--border); color: var(--accent); }
+/* Fields: label above value, two per line */
+[data-skin="ticket"] #panel .row {
+  display: inline-flex; flex-direction: column; gap: 0; width: 50%; vertical-align: top;
+  padding: 6px 10px 6px 0; border: 0;
+}
+[data-skin="ticket"] #panel .row > span:first-child { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+[data-skin="ticket"] #panel .row > span:last-child { text-align: left; font-weight: 700; }
+[data-skin="ticket"] #panel :is(.photo img, .webcam-frame) { border-radius: 16px; }
+[data-skin="ticket"] #panel .raw { border-radius: 12px; background: var(--card); }
+[data-skin="ticket"] #panel .lost { border-radius: 12px; }
+[data-skin="ticket"] #panel a { color: var(--accent); }
+[data-skin="ticket"] #panel .fp { padding: 12px; border-radius: 16px; background: var(--card); }
+[data-skin="ticket"] #panel .fp-code { font-size: 20px; font-weight: 800; }
+
+/* Airport tabs: segmented control; flight lists as cards */
+[data-skin="ticket"] #panel .tabs { gap: 0; padding: 4px; border: 0; border-radius: 14px; background: var(--card); }
+[data-skin="ticket"] #panel .tabs button { min-height: 38px; border: 0; border-radius: 10px; }
+[data-skin="ticket"] #panel .tabs button.on { background: var(--bg); color: var(--accent); box-shadow: 0 1px 4px rgba(120, 60, 10, 0.2); }
+[data-skin="ticket"] #panel ul.flights li { margin: 6px 0; padding: 8px 12px; border: 0; border-radius: 12px; background: var(--card); }

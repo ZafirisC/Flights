@@ -1,0 +1,81 @@
+/* Skin "Glass": frosted translucent chrome, pill controls, floating panel.
+   Active when <html data-skin="glass"> (js/skin.js). Light and dark follow js/theme.js. */
+:root[data-skin="glass"] {
+  --surface: rgba(255, 255, 255, 0.62);
+  --border: rgba(15, 23, 42, 0.12);
+  --accent: #0a84ff;
+  --progress: #0a84ff;
+  --glass-edge: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 8px 30px rgba(15, 23, 42, 0.18);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="glass"]:not([data-theme="light"]) {
+    --surface: rgba(20, 26, 42, 0.6);
+    --border: rgba(255, 255, 255, 0.14);
+    --accent: #4da3ff;
+    --progress: #4da3ff;
+    --glass-edge: rgba(255, 255, 255, 0.16);
+    --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  }
+}
+:root[data-skin="glass"][data-theme="dark"] {
+  --surface: rgba(20, 26, 42, 0.6);
+  --border: rgba(255, 255, 255, 0.14);
+  --accent: #4da3ff;
+  --progress: #4da3ff;
+  --glass-edge: rgba(255, 255, 255, 0.16);
+  --glass-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+[data-skin="glass"] :is(#search, #refresh, #updated, #status, #suggestions, #panel, #disclaimer, .alt-legend,
+  .theme-toggle, .layers-ctl, .leaflet-control-zoom) {
+  background: var(--surface);
+  -webkit-backdrop-filter: blur(18px) saturate(1.7);
+  backdrop-filter: blur(18px) saturate(1.7);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+}
+[data-skin="glass"] #disclaimer { box-shadow: none; border-radius: 10px; padding: 3px 8px; }
+
+/* Top bar */
+[data-skin="glass"] #search { border-radius: 24px; padding: 0 18px; min-height: 48px; }
+[data-skin="glass"] #search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+[data-skin="glass"] #refresh { width: 48px; min-height: 48px; border-radius: 50%; color: var(--accent); }
+[data-skin="glass"] :is(#updated, #status) { border-radius: 14px; padding: 4px 12px; }
+[data-skin="glass"] #suggestions { border-radius: 20px; padding: 6px; }
+[data-skin="glass"] #suggestions li { border-radius: 14px; }
+[data-skin="glass"] #alerts button { box-shadow: 0 6px 18px rgba(211, 47, 47, 0.45); }
+
+/* Map controls */
+[data-skin="glass"] :is(.theme-toggle, .layers-ctl, .leaflet-control-zoom) { border-radius: 14px; overflow: hidden; }
+[data-skin="glass"] .theme-toggle { padding: 0 12px; }
+[data-skin="glass"] .leaflet-control-zoom a { background: transparent; color: var(--fg); border-bottom-color: var(--border); }
+[data-skin="glass"] .alt-legend { border-radius: 12px; padding: 6px 8px; }
+[data-skin="glass"] .ac-icon.ac-selected .ac-glide::after { box-shadow: 0 0 10px var(--accent); }
+
+/* Panel */
+[data-skin="glass"] #panel { overflow: hidden; }
+@media (max-width: 767px) {
+  [data-skin="glass"] #panel { border-radius: 24px 24px 0 0; border-bottom: 0; }
+}
+@media (min-width: 768px) {
+  [data-skin="glass"] #panel { top: 12px; right: 12px; bottom: 12px; border-radius: 24px; }
+  [data-skin="glass"] body.panel-open .leaflet-right { right: 392px; }
+}
+[data-skin="glass"] .panel-title { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+[data-skin="glass"] .panel-close {
+  min-width: 36px; min-height: 36px; margin: 0; border-radius: 50%; background: var(--border); font-size: 20px; line-height: 1;
+}
+[data-skin="glass"] .panel-btn { border-radius: 20px; background: var(--border); border-color: transparent; color: var(--accent); font-weight: 600; }
+[data-skin="glass"] #panel h3 { margin-top: 18px; color: var(--accent); }
+[data-skin="glass"] #panel .row { padding: 6px 0; }
+[data-skin="glass"] #panel .row > span:last-child { font-weight: 600; }
+[data-skin="glass"] #panel .photo img { border-radius: 16px; }
+[data-skin="glass"] #panel .raw { border-radius: 12px; }
+[data-skin="glass"] #panel .lost { border-radius: 14px; }
+[data-skin="glass"] #panel .webcam-frame { border-radius: 16px; }
+
+/* Airport tabs: segmented control */
+[data-skin="glass"] #panel .tabs { gap: 0; padding: 3px; border: 0; border-radius: 14px; background: var(--border); }
+[data-skin="glass"] #panel .tabs button { min-height: 38px; border: 0; border-radius: 11px; }
+[data-skin="glass"] #panel .tabs button.on { background: var(--surface); color: var(--accent); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }

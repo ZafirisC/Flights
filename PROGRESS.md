@@ -307,6 +307,21 @@ the points marked "unverified" still need a check with those hosts allowed.
   script's selection (scheduled service + a code); other small airfields are not in the data (user chose not to add them).
   Checked with Playwright: Kastoria (LGKA, small) hidden at zoom 8, shown at zoom 9, tap opens its panel.
 
+## UI styles (2026-11-13, user request) — code done, awaiting PC + iPhone test
+- Three alternative looks next to the existing one, switched with a new "Style: …" button (bottom right, above the
+  map theme toggle). Cycles Classic → Glass → Cockpit → Ticket; saved in `localStorage` (`flights.skin`).
+  Classic stays the default until one is picked.
+- `js/skin.js` sets `<html data-skin>`; each look is one CSS file scoped to it (`css/skin-glass.css`,
+  `css/skin-cockpit.css`, `css/skin-ticket.css`). No markup or panel code changed. `css/style.css`: the selected-aircraft
+  ring and the active tab now use `var(--accent)`.
+- Glass: frosted translucent surfaces, pill search, floating panel on desktop. Cockpit: always-dark monospace
+  instrument look, amber/teal (only the map follows the Auto/Dark/Light toggle). Ticket: cream paper, sunset banner
+  header, fields two per line, cards.
+- Checked in headless Chromium with mocked network (PC 1280×800 and iPhone 13, light + dark, aircraft panel and search
+  suggestions). Not checked: airport panel tabs/lists and webcams in each style, real map tiles under Glass, real iPhone.
+- Open: once a favourite is chosen, the other two files and the button can be removed and it can become the default.
+  The iOS status-bar colour (`theme-color`) still follows the map theme, not the style.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

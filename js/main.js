@@ -7,6 +7,7 @@ import { createAircraftLayer } from './aircraft-layer.js';
 import { renderAlerts } from './alerts.js';
 import { startTraffic } from './traffic.js';
 import { initTheme } from './theme.js';
+import { initSkin } from './skin.js';
 import { flightFromUrl, openSharedFlight, shareFlight } from './share.js';
 import { initAircraftPanel } from './aircraft-panel.js';
 import { initAirportPanel } from './airport-panel.js';
@@ -27,6 +28,7 @@ if (typeof L === 'undefined' || !L.markerClusterGroup) {
 async function start() {
   const map = initMap('map');
   initTheme(map);
+  initSkin(map);
   addAltitudeLegend(map);
   const panel = initAircraftPanel(map, { onClose: () => layer.select(null) });
   const layer = createAircraftLayer(map, {
