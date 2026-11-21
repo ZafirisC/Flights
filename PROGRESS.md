@@ -324,6 +324,11 @@ the points marked "unverified" still need a check with those hosts allowed.
   (`main.js` → `aircraft-panel.js` → `progress-bar.js`).
 - Checked in headless Chromium: AMS button enabled, tap passes the Schiphol record. Not checked on a real iPhone.
 
+## Commercial release plan (2026-11-21) — plan only, no code
+- `COMMERCIAL_PLAN.md`: App Store + Google Play, accounts, one-time "Unlock Pro". Phases C0–C7. Key finding: current sources
+  are non-commercial/free-tier and live positions are already blocked, so a licensed feed + backend (C1) must come first.
+  Waiting on Zaf's decisions in section 8 of that file.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
