@@ -130,6 +130,27 @@ export async function fetchForecast(lat, lon, hours = 7) {
   }));
 }
 
+// Hourly model forecast for the airport meteogram when there is no TAF (Open-Meteo), cached 15 min. Times in UTC ms.
+// [{ t, windDir, windKt, gustKt, visM, cloud (total %), cloudLow (%), code }]
+export async function fetchModelForecast(lat, lon, hours = 24) {
+  const url = `${SOURCES.openMeteo}/forecast?latitude=${lat.toFixed(2)}&longitude=${lon.toFixed(2)}`
+    + '&hourly=wind_direction_10m,wind_speed_10m,wind_gusts_10m,visibility,cloud_cover,cloud_cover_low,weather_code'
+    + `&wind_speed_unit=kn&timezone=GMT&forecast_hours=${hours}`;
+  const data = await cachedJSON(url, 15 * 60000);
+  const h = data?.hourly;
+  if (!h?.time?.length) return null;
+  return h.time.map((time, i) => ({
+    t: Date.parse(`${time}Z`),
+    windDir: h.wind_direction_10m?.[i] ?? null,
+    windKt: h.wind_speed_10m?.[i] ?? null,
+    gustKt: h.wind_gusts_10m?.[i] ?? null,
+    visM: h.visibility?.[i] ?? null,
+    cloud: h.cloud_cover?.[i] ?? null,
+    cloudLow: h.cloud_cover_low?.[i] ?? null,
+    code: h.weather_code?.[i] ?? null,
+  }));
+}
+
 // Live aircraft. Sources are tried in order; the first that answers wins:
 //   adsb.fi (1 req/s, no daily cap) → adsb.lol (500 requests/day per IP) → airplanes.live → OpenSky (free account,
 //   4000 credits/day via the Worker's OAuth secret; positions only, no callsign/registration search).

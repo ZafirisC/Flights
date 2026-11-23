@@ -1,8 +1,11 @@
 // Airport panel: header (codes, elevation, runways), tabs Departures / Arrivals / Weather.
 /* global L */
-import { fetchMetar, fetchTaf, fetchTransportStops, fetchTransitDepartures } from './api.js';
+import { fetchMetar, fetchTaf, fetchModelForecast, fetchTransportStops, fetchTransitDepartures } from './api.js';
 import { overpassQuery, parseStops, departureView, distanceText, MODES } from './transport.js';
 import { decodeMetar, formatTaf } from './metar.js';
+import { parseTaf, tafTimeline, resolveTime } from './taf.js';
+import { metarSentences, trendSentence, groupSentence, periodKind, periodWhen, dayTime, localParts } from './wx-text.js';
+import { tafMeteogram, modelMeteogram } from './meteogram.js';
 import { airportTraffic } from './airport-traffic.js';
 import { localTime } from './localtime.js';
 import { liveAtcLink } from './atc.js';
@@ -22,34 +25,48 @@ function runwaysHtml(rwy) {
   return rwy.map((r) => esc([r.id, r.len && `${r.len.toLocaleString('en')} ft`, r.surf].filter(Boolean).join(' · '))).join('<br>');
 }
 
-function windText(w) {
-  if (!w) return null;
-  if (w.calm) return 'Calm';
-  const dir = w.dir === 'VRB' ? 'Variable' : `${String(w.dir).padStart(3, '0')}°`;
-  const vari = w.varFrom !== undefined ? ` (varying ${w.varFrom}°–${w.varTo}°)` : '';
-  return `${dir} ${w.speedKt} kt${w.gustKt ? `, gusts ${w.gustKt} kt` : ''}${vari}`;
-}
-
-function weatherHtml(metar, taf) {
+// Weather tab: plain-English METAR, then the forecast as a meteogram plus one line per period.
+// The forecast comes from the TAF; airports without one (or with an expired one) get the Open-Meteo model.
+function weatherHtml({ metar, taf, timeline, model, tz, now }) {
   const raw = metar?.rawOb;
   const d = decodeMetar(raw);
-  const clouds = d.cavok ? 'No significant cloud (CAVOK)'
-    : d.clouds.length ? d.clouds.map((c) => `${c.text}${c.baseFt !== null ? ` ${c.baseFt.toLocaleString('en')} ft` : ''}${c.type ? ` (${c.type})` : ''}`).join(', ')
-    : raw ? 'No cloud reported' : null;
-  return `
-    <div class="wx-head">METAR ${d.category ? `<span class="cat cat-${d.category}">${d.category}</span>` : ''}</div>
-    ${raw ? `<code class="raw">${esc(raw)}</code>` : `<div class="na">${NA}</div>`}
-    ${raw ? [
-      row('Wind', windText(d.wind)),
-      row('Visibility', d.visibility?.text),
-      row('Weather', d.weather.join(', ') || (d.cavok ? 'None significant' : null)),
-      row('Clouds', clouds),
-      row('Ceiling', d.ceilingFt !== null ? `${d.ceilingFt.toLocaleString('en')} ft` : 'None'),
-      row('Temp / dew point', d.tempC !== null ? `${d.tempC}°C / ${d.dewC ?? '–'}°C` : null),
-      row('QNH', d.qnhHpa !== null ? `${d.qnhHpa} hPa` : null),
-    ].join('') : ''}
-    <div class="wx-head">TAF</div>
-    ${taf?.rawTAF ? `<pre class="raw">${esc(formatTaf(taf.rawTAF))}</pre>` : `<div class="na">${NA}</div>`}`;
+  const out = [];
+  const tzLabel = localTime(tz)?.offset;
+  const clock = (ms) => (tz ? `${localParts(ms, tz).hm} local · ` : '') + `${new Date(ms).toISOString().slice(11, 16)}Z`;
+
+  const obs = d.time && resolveTime(+d.time.slice(0, 2), +d.time.slice(2, 4), +d.time.slice(4, 6), now);
+  out.push(`<div class="wx-head">Now ${d.category ? `<span class="cat cat-${d.category}">${d.category}</span>` : ''}
+    ${obs ? `<small class="wx-time">${esc(clock(obs))}</small>` : ''}</div>`);
+  if (raw) {
+    const trend = trendSentence(d.trend);
+    out.push(`<p class="wx-say">${esc(metarSentences(d).join(' ') || 'Report could not be decoded.')}</p>`,
+      trend ? `<p class="wx-say">${esc(trend)}</p>` : '',
+      `<details class="raw-metar"><summary>Raw METAR</summary><code>${esc(raw)}</code></details>`);
+  } else {
+    out.push(`<div class="na">No current report (METAR) for this airport</div>`);
+  }
+
+  if (timeline) {
+    out.push(`<div class="wx-head">Forecast <small class="wx-time">until ${esc(dayTime(timeline.to, tz, now))}</small></div>`,
+      tafMeteogram(timeline, tz),
+      `<div class="note">Solid = expected, dashed = possible. Times are airport local${tzLabel ? ` (${esc(tzLabel)})` : ' (UTC)'}.</div>`,
+      ...timeline.periods.map((p) => {
+        const kind = periodKind(p);
+        const cat = p.state.category;
+        return `<div class="wx-period">
+          <div class="wx-when">${esc(periodWhen(p.from, p.to, tz, now))}${kind ? ` <span class="wx-kind">${esc(kind)}</span>` : ''}${cat ? ` <span class="cat cat-${cat}">${cat}</span>` : ''}</div>
+          <div>${esc(groupSentence(p.kind === 'BASE' || p.kind === 'FM' ? p.state : p.el))}</div></div>`;
+      }),
+      `<details class="raw-metar"><summary>Raw TAF</summary><pre class="raw">${esc(formatTaf(taf.rawTAF))}</pre></details>`);
+  } else if (model?.length) {
+    out.push('<div class="wx-head">Model forecast</div>',
+      modelMeteogram(model, tz),
+      `<div class="note">No TAF for this airport, so this is the Open-Meteo model forecast. It is less reliable than a TAF
+        for low cloud and fog, and has no flight categories. Times are airport local${tzLabel ? ` (${esc(tzLabel)})` : ' (UTC)'}.</div>`);
+  } else {
+    out.push('<div class="wx-head">Forecast</div>', `<div class="na">${NA}</div>`);
+  }
+  return out.join('');
 }
 
 function transportHtml(tp, tz) {
@@ -115,12 +132,15 @@ export function initAirportPanel(map, layer) {
   }
 
   async function loadWeather(t) {
-    if (!apt.icao) { if (t === token) body().innerHTML = `<div class="na">${NA} (no ICAO code)</div>`; return; }
-    const [metar, taf] = await Promise.all([
+    const [metar, taf] = apt.icao ? await Promise.all([
       fetchMetar(apt.icao).catch(() => null),
       fetchTaf(apt.icao).catch(() => null),
-    ]);
-    if (t === token && tab === 'weather') body().innerHTML = weatherHtml(metar, taf);
+    ]) : [null, null];
+    const now = Date.now();
+    let timeline = null;
+    try { timeline = tafTimeline(parseTaf(taf?.rawTAF, now), now); } catch { timeline = null; } // unreadable TAF → model
+    const model = timeline ? null : await fetchModelForecast(apt.lat, apt.lon).catch(() => null);
+    if (t === token && tab === 'weather') body().innerHTML = weatherHtml({ metar, taf, timeline, model, tz: apt.tz, now });
   }
 
   // Stops once per airport (OpenStreetMap); departures again every time the tab renders (api.js caches 60 s).
