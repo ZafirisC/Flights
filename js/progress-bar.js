@@ -8,7 +8,7 @@ const PLANE_PX = 22; // keeps the plane inside the bar at 0% and 100%
 
 // ICAO → airport, built once per session (not on every panel open).
 let indexPromise = null;
-const airportIndex = () => (indexPromise ??= fetchAirports()
+export const airportIndex = () => (indexPromise ??= fetchAirports()
   .then((list) => new Map(list.filter((a) => a.icao).map((a) => [a.icao, a])))
   .catch((err) => { indexPromise = null; throw err; }));
 
