@@ -66,3 +66,51 @@ test('advice text names the side and seat letters', () => {
   assert.match(lines[2], /Sunset about 1 h 35 min after take-off, on the left \(A seats\)/);
   assert.match(seatAdvice({ side: 'none', events: [] }, null)[0], /dark/);
 });
+
+// --- Take-off / landing view side ---
+import { runwayEnds, pickRunway, runwayViews, viewAdvice, turnDeg } from '../js/runway-view.js';
+
+const SKG = { icao: 'LGTS', lat: 40.5193, lon: 22.97, rwy: [{ id: '10/28', hdg: 104 }, { id: '16/34', hdg: 166 }] };
+const LGAV = { icao: 'LGAV', lat: 37.9364, lon: 23.9445, rwy: [{ id: '03L/21R', hdg: 37 }, { id: '03R/21L', hdg: 37 }] };
+
+test('turnDeg: signed shortest turn', () => {
+  assert.equal(turnDeg(350, 10), 20);
+  assert.equal(turnDeg(10, 350), -20);
+  assert.equal(turnDeg(0, 180), 180);
+});
+
+test('runway ends: both directions, flipped data, missing heading', () => {
+  assert.deepEqual(runwayEnds([{ id: '10/28', hdg: 104 }]), [{ name: '10', hdg: 104 }, { name: '28', hdg: 284 }]);
+  assert.deepEqual(runwayEnds([{ id: '28/10', hdg: 104 }]), [{ name: '28', hdg: 284 }, { name: '10', hdg: 104 }]);
+  assert.deepEqual(runwayEnds([{ id: '05L/23R' }]), [{ name: '05L', hdg: 50 }, { name: '23R', hdg: 230 }]);
+  assert.deepEqual(runwayEnds([{ id: 'H1' }]), []);
+});
+
+test('pick runway: headwind when windy, route alignment when calm or variable', () => {
+  const ends = runwayEnds(SKG.rwy);
+  assert.equal(pickRunway(ends, { dir: 280, speedKt: 12 }, 165).name, '28');
+  assert.equal(pickRunway(ends, { dir: 280, speedKt: 12 }, 165).basis, 'wind');
+  assert.equal(pickRunway(ends, { dir: 0, speedKt: 0, calm: true }, 165).name, '16');
+  assert.equal(pickRunway(ends, { dir: 'VRB', speedKt: 8 }, 165).basis, 'route');
+  assert.equal(pickRunway([], null, 0), null);
+});
+
+test('views SKG→ATH: calm = straight out; west wind = runway 28 then a left turn; north wind at ATH = left turn to 03', () => {
+  assert.equal(runwayViews({ origin: SKG, dest: LGAV }).dep.turn, 'straight');
+  const v = runwayViews({ origin: SKG, dest: LGAV, originWind: { dir: 280, speedKt: 12 }, destWind: { dir: 20, speedKt: 15 } });
+  assert.equal(v.dep.runway.name, '28');
+  assert.equal(v.dep.turn, 'left');
+  assert.equal(v.arr.runway.name, '03L or 03R');
+  assert.equal(v.arr.turn, 'left');
+});
+
+test('views: no runway data → nothing', () => {
+  assert.deepEqual(runwayViews({ origin: { lat: 1, lon: 1 }, dest: { lat: 2, lon: 2 } }), { dep: null, arr: null });
+});
+
+test('view advice text', () => {
+  const lines = viewAdvice({ dep: { runway: { name: '28', basis: 'wind' }, turn: 'left' },
+    arr: { runway: { name: '03L', basis: 'route' }, turn: 'straight' } }, layoutFor('A20N'), { origin: 'SKG', dest: 'ATH' });
+  assert.equal(lines[0], 'Take-off from runway 28 (likely, from the wind), then a left turn: the LEFT side (A seats) looks down on the area around SKG.');
+  assert.match(lines[1], /^Landing on runway 03L \(a guess, light wind\), almost straight in/);
+});

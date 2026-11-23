@@ -336,7 +336,16 @@ the points marked "unverified" still need a check with those hosts allowed.
   Unknown type → "Not available"; sun side then says left/right without seat letters.
 - Tests: `tests/seat-tips.test.mjs` (sun position, sides for ATH⇄LHR, night, sunset event, time estimate, layouts, text).
 - Checked: all tests pass; app loads in headless Chromium without errors. Not checked with a live aircraft or on iPhone.
-- Not done (suggested earlier, user chose not to yet): view side on landing, preference buttons.
+- User confirmed working on the live site (after a forced reload; the first load ran the cached JS).
+- Take-off / landing view side (`js/runway-view.js`, 2026-11-23): likely runway from the METAR wind (most headwind,
+  ≥ 5 kt), else the runway best aligned with the route ("a guess, light wind"); parallel runways named together
+  ("03R or 03L"). Then the turn after take-off (runway → course to destination) and before landing (arrival course →
+  runway): the inside of the turn looks down on the area around the airport; turns under 30° = "no clear side".
+  Uses runways from `data/airports.json` (`airportIndex` now exported from `progress-bar.js`), the origin METAR (one
+  extra request per panel, cached 5 min) and the destination METAR already loaded for the weather section.
+  Real approaches follow ATC vectors/STARs, so the panel calls it a hint. Not done: city/sea side (no coastline data).
+- Checked: tests pass (44); mocked SKG→ATH in headless Chromium shows both lines. Not checked live or on iPhone.
+- Not done: preference buttons.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
