@@ -324,6 +324,20 @@ the points marked "unverified" still need a check with those hosts allowed.
   (`main.js` → `aircraft-panel.js` → `progress-bar.js`).
 - Checked in headless Chromium: AMS button enabled, tap passes the Schiphol record. Not checked on a real iPhone.
 
+## Seat tips (2026-11-23, user request) — code done, awaiting PC + iPhone test with a real flight
+- New "Seat tips" section in the aircraft panel (after Aircraft). No new network calls; uses route, flight times and type
+  already loaded for the panel.
+- Sun side (`js/sun.js` sun position, `js/seat-tips.js`): samples the great circle origin → destination over the flight
+  time and weighs how much the sun shines in from each side. Says LEFT / RIGHT / both / mostly ahead / dark, plus
+  sunrise/sunset during the flight. Times from AeroDataBox when available, else estimated from distance (440 kt) and
+  the live position (marked "estimated"). Framed as advice for the same flight number on another day.
+- Type tips (`js/seat-layouts.js`): hand-written typical layout, window letters and tips for common types (A320 family,
+  737, 757, A220, E-Jet, CRJ, ATR, Dash 8, A330/A340/A350, 767/777/787/747, A380). No row numbers (airlines differ).
+  Unknown type → "Not available"; sun side then says left/right without seat letters.
+- Tests: `tests/seat-tips.test.mjs` (sun position, sides for ATH⇄LHR, night, sunset event, time estimate, layouts, text).
+- Checked: all tests pass; app loads in headless Chromium without errors. Not checked with a live aircraft or on iPhone.
+- Not done (suggested earlier, user chose not to yet): view side on landing, preference buttons.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

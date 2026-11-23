@@ -9,6 +9,8 @@ import { flightNumbers } from './airlines.js';
 import { createTrack } from './track.js';
 import { createFlightProgress } from './progress-bar.js';
 import { liveAtcLink } from './atc.js';
+import { legTimes } from './progress.js';
+import { sunSide, flightWindow, seatAdvice, layoutFor } from './seat-tips.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -71,6 +73,7 @@ export function initAircraftPanel(map, { onClose, onAirport } = {}) {
       <div data-sec="progress"></div>
       <h3>Flight</h3><div data-sec="flight">Loading…</div><div data-sec="times"></div>
       <h3>Aircraft</h3><div data-sec="aircraft">Loading…</div>
+      <h3>Seat tips</h3><div data-sec="seats">Loading…</div>
       <h3>Live</h3><div data-sec="live">${liveHtml(ac, ac.seen)}</div>
       <h3>Destination weather</h3><div data-sec="weather">Loading…</div>`;
     el.querySelector('.panel-close').addEventListener('click', close);
@@ -89,6 +92,7 @@ export function initAircraftPanel(map, { onClose, onAirport } = {}) {
       route ? '<div class="note">Route from adsbdb by callsign; may differ from today\'s flight.</div>' : '',
     ].join(''));
     if (t !== token) return;
+    seat.route = route; seat.routeDone = true; renderSeats(t);
     progress?.setRoute(route);
     track.setDestination(route?.destination?.lat != null ? [route.destination.lat, route.destination.lon] : null);
     const atc = [liveAtcLink(route?.origin?.icao, `ATC ${route?.origin?.iata || route?.origin?.icao || ''}`),
@@ -105,6 +109,7 @@ export function initAircraftPanel(map, { onClose, onAirport } = {}) {
     try { leg = pickFlight((await fetchFlightTimes(ac.callsign))?.flights); ft = flightTimes(leg); } catch { return; }
     if (!ft || t !== token) return;
     progress?.setLeg(leg, ft);
+    seat.times = legTimes(ft); renderSeats(t);
     const line = (label, e) => e && `<tr><td>${label}</td><td>${esc(hhmm(e.scheduled) || '–')}</td>
       <td>${e.time ? `${esc(hhmm(e.time))} <span class="kind">${e.kind === 'Actual' ? 'act' : 'est'}</span>` : '–'}</td>
       <td class="delay ${e.delayMin !== null ? delayClass(e.delayMin) : ''}">${esc(delayText(e.delayMin))}</td></tr>`;
@@ -133,6 +138,8 @@ export function initAircraftPanel(map, { onClose, onAirport } = {}) {
       row('Country', info?.ownerCountry),
       row('Mode S', ac.hex.toUpperCase()),
     ].join(''));
+    if (t !== token) return;
+    seat.type = info?.icaoType || ac.type || null; seat.infoDone = true; renderSeats(t);
   }
 
   async function loadWeather(t, dest) {
@@ -154,6 +161,27 @@ export function initAircraftPanel(map, { onClose, onAirport } = {}) {
       ${fc?.length ? '<div class="note">Forecast: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a></div>' : ''}`);
   }
 
+  // Seat tips need the route and the aircraft type; flight times refine the sun calculation when they arrive.
+  let seat = {};
+  function renderSeats(t) {
+    if (t !== token || !seat.routeDone || !seat.infoDone) return;
+    const { origin, destination: dest } = seat.route || {};
+    const layout = layoutFor(seat.type);
+    let sunHtml = `<div class="note">Sun side: ${NA} (route unknown)</div>`;
+    if (origin?.lat != null && dest?.lat != null) {
+      const win = flightWindow({ origin, dest, times: seat.times, live: last?.ac });
+      const lines = seatAdvice(sunSide({ origin, dest, ...win }), layout);
+      sunHtml = `<div class="seat-sun">☀ ${lines.map(esc).join('<br>')}</div>
+        <div class="note">${win.estimated ? 'Times estimated from distance. ' : ''}Based on today's flight; the same flight number on another day is similar.</div>`;
+    }
+    const typeHtml = layout
+      ? `<details class="seat-type"><summary>${esc(layout.name)} · typical layout ${esc(layout.cabin)} · windows ${esc(layout.left)} (left) / ${esc(layout.right)} (right)</summary>
+          <ul>${layout.tips.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+          <div class="note">Typical layout; each airline configures its own cabin.</div></details>`
+      : `<div class="note">Seat layout for this aircraft type: ${NA}</div>`;
+    fill(t, 'seats', sunHtml + typeHtml);
+  }
+
   const yieldPanel = () => close(); // another panel took #panel
 
   function open(ac) {
@@ -162,6 +190,7 @@ export function initAircraftPanel(map, { onClose, onAirport } = {}) {
     hex = ac.hex;
     const t = ++token;
     last = { ac, at: Date.now() };
+    seat = {};
     render(ac);
     showPanel();
     revealOnMap(map, [ac.lat, ac.lon]);
