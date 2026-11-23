@@ -328,6 +328,37 @@ html, body {
 .cat-IFR { background: #c62828; }
 .cat-LIFR { background: #8e24aa; }
 
+/* Airport Weather tab: plain-English METAR/TAF and the meteogram (js/meteogram.js) */
+#panel .wx-time { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 400; }
+#panel .wx-say { margin: 4px 0 6px; font-size: 15px; line-height: 1.45; }
+#panel .wx-period { padding: 6px 0; border-bottom: 1px solid var(--border); }
+#panel .wx-period:last-of-type { border-bottom: 0; }
+#panel .wx-when { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 2px; color: var(--muted); font-size: 12px; }
+#panel .wx-kind { padding: 1px 6px; border-radius: 4px; background: rgba(232, 89, 12, 0.14); color: var(--accent); font-size: 11px; font-weight: 700; }
+.mg { display: block; width: 100%; height: auto; margin: 4px 0; }
+.mg text { font: 10px system-ui, -apple-system, sans-serif; fill: var(--fg); }
+.mg text.m { fill: var(--muted); }
+.mg text.a { fill: var(--accent); font-weight: 700; }
+.mg text.b { font-weight: 700; }
+.mg-box { fill: var(--card); }
+.mg-grid { stroke: var(--border); stroke-width: 1; }
+.mg-now { stroke: var(--fg); stroke-width: 1.5; }
+.mg-arrow { fill: none; stroke: var(--fg); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.mg-calm { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+.mg-line { fill: none; stroke: var(--fg); stroke-width: 2; stroke-linejoin: round; }
+.mg-poss { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 4 3; }
+.mg-poss.thick { stroke-width: 3; stroke-dasharray: 6 3; }
+.mg-soft { fill: var(--accent); fill-opacity: 0.14; }
+.mg-dot { fill: var(--accent); }
+.mg-cloud { stroke: var(--fg); stroke-width: 3; stroke-linecap: round; }
+.mg-cloud.thin { stroke-dasharray: 1 5; }
+.mg-cc { fill: var(--muted); fill-opacity: 0.3; }
+.mg-cc.low { fill-opacity: 0.75; }
+.mg-cat-VFR { fill: #2e7d32; }
+.mg-cat-MVFR { fill: #1565c0; }
+.mg-cat-IFR { fill: #c62828; }
+.mg-cat-LIFR { fill: #8e24aa; }
+
 /* Layers menu (bottom right, next to the theme toggle) */
 .layers-ctl { background: var(--surface); color: var(--fg); border-radius: 8px; overflow: hidden; }
 .layers-btn { min-height: 36px; padding: 0 12px; border: none; background: none; color: inherit; font: inherit; cursor: pointer; }

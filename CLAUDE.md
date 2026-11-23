@@ -25,7 +25,7 @@ Read both at the start of every session. Do only the phase you were asked to do.
 `python3 -m http.server 8000` in the repo root, then open `http://localhost:8000`.
 
 ## Tests
-`node --test tests/*.mjs` (Node 22+, no dependencies). Covers the pure code in `js/progress.js` and the live-source
+`node --test tests/*.mjs` (Node 22+, no dependencies). Covers the pure code in `js/progress.js`, METAR/TAF decoding and text (`js/taf.js`, `js/wx-text.js`), and the live-source
 fallback chain / OpenSky parsing in `js/api.js` (fetch mocked).
 
 ## Reference

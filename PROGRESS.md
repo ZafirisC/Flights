@@ -347,6 +347,23 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Checked: tests pass (44); mocked SKG→ATH in headless Chromium shows both lines. Not checked live or on iPhone.
 - Not done: preference buttons.
 
+## Weather tab: plain-English METAR/TAF + meteogram (2026-11-23, user request) — code done, awaiting live test
+- Chosen from mockups: text option T1 (plain sentences) + graph option G2 (meteogram). Airport panel only; the aircraft
+  panel's destination METAR line is unchanged.
+- `js/metar.js`: element loop split out as `decodeElements()` (shared with TAF groups; only elements present are set;
+  NSW handled; P6SM counts as 10 km); METAR trend (NOSIG / TEMPO / BECMG) now decoded into `trend`; `ceilingOf()`,
+  `categoryOf()`. `js/taf.js`: `parseTaf()` (FM, BECMG, TEMPO, PROBxx, PROBxx TEMPO; NIL/CNL → null; day/hour resolved
+  to the nearest month) and `tafTimeline()` (expected = base, FM from its start, BECMG from the end of its window;
+  possible = TEMPO/PROB laid over the expected state; past groups dropped; expired TAF → null).
+  `js/wx-text.js`: sentences, 8-point wind words, airport-local "Today/Tomorrow" times. `js/meteogram.js`: SVG with wind
+  arrows, visibility (log scale 200 m–10 km), cloud base (square-root scale 0–5,000 ft), flight-category strip.
+- **No TAF** (many airports), unreadable or expired TAF: the graph comes from Open-Meteo hourly (`fetchModelForecast()` in
+  `api.js`: wind/gusts, visibility, total + low cloud cover), labelled as a model forecast with no categories. Airports
+  without an ICAO code now get this too instead of "Not available".
+- Tests: `tests/taf.test.mjs` (parser, timeline, sentences, local times, SVG has no NaN). Checked in headless Chromium at
+  phone width with mocked METAR/TAF/Open-Meteo (TAF airport and no-TAF airport). Not checked: real data (the build sandbox
+  cannot reach aviationweather.gov or Open-Meteo), real iPhone.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

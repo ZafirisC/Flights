@@ -1,5 +1,5 @@
 // METAR decoder (wind, visibility, weather, clouds, temperature/dew point, QNH) and flight category.
-// TAF is shown raw, one change group per line (formatTaf).
+// TAF groups are parsed in taf.js with decodeElements().
 
 const WX_INTENSITY = { '-': 'Light', '+': 'Heavy', VC: 'In vicinity:' };
 const WX_DESCRIPTOR = {
@@ -45,21 +45,14 @@ export function flightCategory(ceilingFt, visSm) {
   return 'VFR';
 }
 
-export function decodeMetar(raw) {
-  const out = {
-    station: null, time: null, wind: null, visibility: null, weather: [], clouds: [],
-    cavok: false, tempC: null, dewC: null, qnhHpa: null, ceilingFt: null, category: null,
-  };
-  if (!raw) return out;
-  const toks = raw.trim().replace(/=$/, '').split(/\s+/);
-  let i = 0;
-  if (/^(METAR|SPECI)$/.test(toks[i])) i++;
-  if (/^[A-Z][A-Z0-9]{3}$/.test(toks[i])) out.station = toks[i++];
-  if (/^\d{6}Z$/.test(toks[i])) out.time = toks[i++];
-
+// Decodes wind, visibility, weather, cloud, temperature and QNH tokens from toks[i] on, into out, and stops at
+// RMK or a trend/change keyword. Only elements that appear are set: weather becomes [] after NSW, clouds [] after
+// NSC/SKC, and CAVOK sets visibility, clouds and weather. Used for METARs and for TAF change groups.
+// Returns the index it stopped at.
+export function decodeElements(toks, out, i = 0) {
   for (; i < toks.length; i++) {
     const t = toks[i];
-    if (/^(RMK|NOSIG|BECMG|TEMPO)$/.test(t)) break; // remarks and trend: not decoded
+    if (/^(RMK|NOSIG|BECMG|TEMPO)$/.test(t)) break;
     let m;
     if ((m = t.match(/^(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?(KT|MPS|KMH)$/))) {
       const k = { KT: 1, MPS: 1.94384, KMH: 0.539957 }[m[4]];
@@ -76,6 +69,8 @@ export function decodeMetar(raw) {
     } else if (t === 'CAVOK') {
       out.cavok = true;
       out.visibility = { meters: 10000, sm: 10000 / M_PER_SM, text: '10 km or more' };
+      out.clouds = [];
+      out.weather = [];
     } else if ((m = t.match(/^(\d{4})(NDV)?$/)) && !out.visibility) {
       const meters = Number(m[1]);
       out.visibility = {
@@ -89,15 +84,18 @@ export function decodeMetar(raw) {
         sm += out.visibility.wholeSm; // "1 1/2SM"
         label = `${out.visibility.wholeSm} ${m[2]}`;
       }
+      if (m[1] === 'P' && sm >= 6) sm = 10000 / M_PER_SM; // "P6SM": treat like 9999
       const prefix = m[1] === 'P' ? 'more than ' : m[1] === 'M' ? 'less than ' : '';
       out.visibility = { meters: Math.round(sm * M_PER_SM), sm, text: `${prefix}${label} SM` };
     } else if (/^\d$/.test(t) && /^\d\/\dSM$/.test(toks[i + 1] || '')) {
       out.visibility = { wholeSm: Number(t) }; // completed by the next token
     } else if (/^(NSC|NCD|SKC|CLR)$/.test(t)) {
       out.clouds = [];
+    } else if (t === 'NSW') {
+      out.weather = [];
     } else if ((m = t.match(/^(FEW|SCT|BKN|OVC|VV)(\d{3}|\/\/\/)(CB|TCU|\/\/\/)?$/))) {
       const baseFt = m[2] === '///' ? null : Number(m[2]) * 100;
-      out.clouds.push({ cover: m[1], text: COVER[m[1]], baseFt, type: CLOUD_TYPE[m[3]] || null });
+      (out.clouds ||= []).push({ cover: m[1], text: COVER[m[1]], baseFt, type: CLOUD_TYPE[m[3]] || null });
     } else if ((m = t.match(/^(M?\d{2})\/(M?\d{2})?$/))) {
       out.tempC = num(m[1]);
       out.dewC = m[2] ? num(m[2]) : null;
@@ -109,15 +107,53 @@ export function decodeMetar(raw) {
       // runway visual range and report flags: not shown
     } else {
       const wx = decodeWeather(t);
-      if (wx) out.weather.push(wx);
+      if (wx) (out.weather ||= []).push(wx);
     }
   }
+  return i;
+}
 
-  const ceiling = out.clouds.filter((c) => /BKN|OVC|VV/.test(c.cover) && c.baseFt !== null);
-  out.ceilingFt = ceiling.length ? Math.min(...ceiling.map((c) => c.baseFt)) : null;
-  const visSm = out.visibility?.sm ?? null;
+// Ceiling in ft: lowest broken/overcast layer or vertical visibility, null if none.
+export function ceilingOf(clouds) {
+  const c = (clouds || []).filter((l) => /BKN|OVC|VV/.test(l.cover) && l.baseFt !== null);
+  return c.length ? Math.min(...c.map((l) => l.baseFt)) : null;
+}
+
+// Flight category of a decoded state ({ visibility, clouds }); null when neither is known.
+export function categoryOf(s) {
+  const visSm = s.visibility?.sm ?? null;
+  const ceiling = ceilingOf(s.clouds);
   // No reported ceiling counts as unlimited once we know the visibility.
-  out.category = visSm === null && out.ceilingFt === null ? null : flightCategory(out.ceilingFt, visSm);
+  return visSm === null && ceiling === null ? null : flightCategory(ceiling, visSm);
+}
+
+export function decodeMetar(raw) {
+  const out = {
+    station: null, time: null, wind: null, visibility: null, weather: [], clouds: [],
+    cavok: false, tempC: null, dewC: null, qnhHpa: null, ceilingFt: null, category: null, trend: [],
+  };
+  if (!raw) return out;
+  const toks = raw.trim().replace(/=$/, '').split(/\s+/);
+  let i = 0;
+  if (/^(METAR|SPECI)$/.test(toks[i])) i++;
+  if (/^[A-Z][A-Z0-9]{3}$/.test(toks[i])) out.station = toks[i++];
+  if (/^\d{6}Z$/.test(toks[i])) out.time = toks[i++];
+  i = decodeElements(toks, out, i);
+
+  // Trend for the next 2 hours: NOSIG, or TEMPO/BECMG groups (FM/TL/AT times are skipped).
+  while (i < toks.length && toks[i] !== 'RMK') {
+    const kind = toks[i];
+    if (kind === 'NOSIG') { out.trend.push({ kind }); i++; continue; }
+    if (kind !== 'TEMPO' && kind !== 'BECMG') break;
+    const group = { kind };
+    i++;
+    while (/^(FM|TL|AT)\d{4}$/.test(toks[i] || '')) i++;
+    i = decodeElements(toks, group, i);
+    out.trend.push(group);
+  }
+
+  out.ceilingFt = ceilingOf(out.clouds);
+  out.category = categoryOf(out);
   return out;
 }
 
