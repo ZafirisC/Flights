@@ -277,6 +277,9 @@ html, body {
 #panel .lost[hidden] { display: none; }
 #panel .metar-text { margin: 4px 0; }
 #panel details.raw-metar summary { color: var(--muted); font-size: 12px; cursor: pointer; min-height: 28px; }
+#panel .seat-sun { font-size: 14px; line-height: 1.45; margin: 4px 0; }
+#panel details.seat-type summary { color: var(--muted); font-size: 12px; cursor: pointer; min-height: 28px; }
+#panel details.seat-type ul { margin: 4px 0; padding-left: 18px; font-size: 13px; }
 #panel code { font-size: 12px; white-space: normal; word-break: break-word; }
 #panel .photo { display: block; margin: 4px 0 6px; color: var(--muted); font-size: 11px; text-decoration: none; }
 #panel .photo img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; background: var(--border); }
