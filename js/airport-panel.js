@@ -1,6 +1,6 @@
 // Airport panel: header (codes, elevation, runways), tabs Departures / Arrivals / Weather.
 /* global L */
-import { fetchMetar, fetchTaf, fetchModelForecast, fetchTransportStops, fetchTransitDepartures } from './api.js';
+import { fetchShapes, fetchMetar, fetchTaf, fetchModelForecast, fetchTransportStops, fetchTransitDepartures } from './api.js';
 import { overpassQuery, parseStops, departureView, distanceText, MODES } from './transport.js';
 import { decodeMetar, formatTaf } from './metar.js';
 import { parseTaf, tafTimeline, resolveTime } from './taf.js';
@@ -10,6 +10,7 @@ import { airportTraffic } from './airport-traffic.js';
 import { localTime } from './localtime.js';
 import { liveAtcLink } from './atc.js';
 import { createCameras } from './webcams.js';
+import { regionShape, shapeSvg, flagImg } from './region-shape.js';
 import { claimPanel, releasePanel, showPanel, hidePanel, revealOnMap } from './panel.js';
 
 const NA = 'Not available';
@@ -187,9 +188,10 @@ export function initAirportPanel(map, layer) {
     const codes = [a.icao, a.iata].filter(Boolean).join(' / ');
     el.innerHTML = `
       <div class="panel-head">
-        <div>
+        ${flagImg(a.country)}
+        <div class="panel-head-text">
           <div class="panel-title">${esc(a.name)}</div>
-          <div class="panel-sub">${esc([codes, a.city, a.country].filter(Boolean).join(' · '))}</div>
+          <div class="panel-sub">${esc([codes, a.city, a.region ? `${a.region}, ${a.country}` : a.country].filter(Boolean).join(' · '))}</div>
         </div>
         <button type="button" class="panel-close" aria-label="Close">×</button>
       </div>
@@ -205,6 +207,10 @@ export function initAirportPanel(map, layer) {
         <button type="button" data-tab="cameras">Cameras</button>
       </div>
       <div data-body></div>`;
+    fetchShapes().then((shapes) => {
+      const head = t === token && el.querySelector('.panel-head');
+      if (head) head.insertAdjacentHTML('afterbegin', shapeSvg(regionShape(shapes, a)));
+    }).catch(() => {}); // header art is decoration only
     el.querySelector('.panel-close').addEventListener('click', () => close());
     el.querySelectorAll('.tabs button').forEach((btn) => btn.addEventListener('click', () => {
       tab = btn.dataset.tab;

@@ -53,6 +53,12 @@ def icao_of(a):
     return None
 
 
+def us_state(a):
+    """Two-letter US state (or DC/territory) from iso_region "US-CO"; other countries get none (not shown)."""
+    region = a.get("iso_region") or ""
+    return region[3:] if a["iso_country"] == "US" and region.startswith("US-") else None
+
+
 def keep(a, icao, iata):
     if a["type"] in ("large_airport", "medium_airport"):
         return True
@@ -97,7 +103,7 @@ def build(airports, runways, tz_of):
             continue
         item = {
             "icao": icao, "iata": iata, "name": a["name"], "city": a["municipality"] or None,
-            "country": a["iso_country"] or None, "lat": lat, "lon": lon,
+            "country": a["iso_country"] or None, "region": us_state(a), "lat": lat, "lon": lon,
             "tz": tz_of(lat, lon),
             "elev": num(a["elevation_ft"]), "type": a["type"].split("_")[0],
             "rwy": rwys.get(a["id"]),
@@ -117,7 +123,7 @@ def main():
     doc = {
         "source": "OurAirports (public domain), https://ourairports.com/data/",
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "fields": "icao, iata, name, city, country, lat, lon, tz (IANA), elev (ft), type, "
+        "fields": "icao, iata, name, city, country, region (US state), lat, lon, tz (IANA), elev (ft), type, "
                   "rwy[id, len (ft), wid (ft), surf, hdg (deg true)]",
         "airports": data,
     }

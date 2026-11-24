@@ -272,6 +272,14 @@ export function fetchAirports() {
   return airportsPromise;
 }
 
+// Country and US-state outlines for the airport panel header (data/shapes.json, built by scripts/build_shapes.mjs).
+let shapesPromise = null;
+export function fetchShapes() {
+  shapesPromise ??= getJSON('data/shapes.json', { timeout: 30000 })
+    .catch((err) => { shapesPromise = null; throw err; });
+  return shapesPromise;
+}
+
 // Position history of an aircraft from adsb.lol's tar1090 traces (via the Worker): raw JSON
 // { timestamp, trace: [[secondsAfterTimestamp, lat, lon, alt|"ground", gs, track, ...], ...] } or null.
 // Today's full trace first, then the short recent one.
