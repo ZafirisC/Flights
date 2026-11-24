@@ -364,6 +364,19 @@ the points marked "unverified" still need a check with those hosts allowed.
   phone width with mocked METAR/TAF/Open-Meteo (TAF airport and no-TAF airport). Not checked: real data (the build sandbox
   cannot reach aviationweather.gov or Open-Meteo), real iPhone.
 
+## Airport header: flag + country/state outline (2026-11-24, user request) — code done, awaiting live test
+- Chosen from mockups: option B (watermark outline) + flag "soft blend", split 3 (flag on the left fading into the map).
+- `scripts/build_shapes.mjs` (Node, npm packages installed with --no-save, `node_modules/` git-ignored) writes
+  `data/shapes.json` (~200 kB: Natural Earth 1:50m outlines per ISO country, each simplified in its own 100 px box,
+  plus the projection so the app can place the dot) and copies flag-icons 4:3 SVGs (MIT) to `icons/flags/`.
+- US airports: lower-48 outline with their state filled in; AK, HI and territories drawn on their own.
+  `build_airports.py` now adds `region` (US state from OurAirports iso_region) to US airports only; airports.json
+  regenerated from current OurAirports (6,096 airports). Subtitle shows "CO, US".
+- `js/region-shape.js` (projection, SVG, flag `<img>`), `fetchShapes()` in `api.js` (loaded once, on first airport
+  panel). Missing country/flag: nothing shown. Tests: `tests/region-shape.test.mjs` (incl. Russia across 180°).
+- Checked: tests pass (59); LGAV / KDEN / SBGR in headless Chromium, desktop and iPhone 13 size, no errors.
+  Not checked on a real iPhone. Long names wrap more on phones (text keeps 74% of the width).
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

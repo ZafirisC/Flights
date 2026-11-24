@@ -43,6 +43,7 @@ flowchart LR
 
   subgraph Build["Offline build (developer)"]
     PY["scripts/build_airports.py<br/>OurAirports CSV + timezonefinder"]
+    SH["scripts/build_shapes.mjs<br/>Natural Earth outlines + flag-icons"]
   end
   PY --> AJ
 ```
@@ -82,6 +83,7 @@ flowchart TD
   ARP --> METAR
   ARP --> TR["transport.js<br/>stops + departures"]
   ARP --> CAM["webcams.js"]
+  ARP --> RS["region-shape.js<br/>header flag + country / state outline"]
   ARP --> LT["localtime.js"]
   ARP --> ATC
 
