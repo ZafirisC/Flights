@@ -310,6 +310,12 @@ html, body {
   color: var(--muted); font: inherit; font-weight: 600; cursor: pointer;
 }
 #panel .tabs button.on { color: var(--fg); border-bottom-color: var(--accent, #1565c0); }
+#panel .chips { display: flex; gap: 6px; overflow-x: auto; margin: 4px 0 8px; padding-bottom: 2px; }
+#panel .chips button {
+  flex: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 22px;
+  background: none; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer;
+}
+#panel .chips button.on { background: var(--accent, #1565c0); border-color: var(--accent, #1565c0); color: #fff; }
 #panel ul.flights { list-style: none; margin: 0; padding: 0; }
 #panel ul.flights li {
   display: flex; justify-content: space-between; gap: 10px; min-height: 44px; padding: 6px 0;

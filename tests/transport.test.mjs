@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseStops, departureView, distanceText, modeFromRouteType, overpassQuery } from '../js/transport.js';
+import { parseStops, departureView, distanceText, modeFromRouteType, overpassQuery, filterByMode, modesPresent } from '../js/transport.js';
+
+test('filterByMode and modesPresent', () => {
+  const items = [{ mode: 'bus' }, { mode: 'train' }, { mode: 'bus' }];
+  assert.equal(filterByMode(items, 'all').length, 3);
+  assert.equal(filterByMode(items, 'bus').length, 2);
+  assert.equal(filterByMode(items, 'tram').length, 0);
+  assert.deepEqual(modesPresent(items, null, [{ mode: 'metro' }]), ['train', 'metro', 'bus']);
+});
 import { trimDepartures } from '../worker/worker.js';
 
 const APT = { lat: 37.9364, lon: 23.9445 };

@@ -68,6 +68,17 @@ export function parseStops(data, apt) {
   return out.sort((a, b) => MODES[a.mode].order - MODES[b.mode].order || a.distM - b.distM);
 }
 
+// Filter by mode ('all' keeps everything) and list the modes that occur, in display order.
+export function filterByMode(items, mode) {
+  return mode && mode !== 'all' ? items.filter((x) => x.mode === mode) : items;
+}
+
+export function modesPresent(...lists) {
+  const set = new Set();
+  for (const list of lists) for (const x of list || []) if (MODES[x.mode]) set.add(x.mode);
+  return [...set].sort((a, b) => MODES[a].order - MODES[b].order);
+}
+
 export function distanceText(m) {
   return m < 950 ? `${Math.max(50, Math.round(m / 50) * 50)} m` : `${(m / 1000).toFixed(1)} km`;
 }

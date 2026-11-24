@@ -377,6 +377,12 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Checked: tests pass (59); LGAV / KDEN / SBGR in headless Chromium, desktop and iPhone 13 size, no errors.
   Not checked on a real iPhone. The name runs over the map (full width) so long names wrap less.
 
+## Transport tab filters (2026-11-24, user request) — code done, awaiting live test
+- Filter chips (All / Train / Metro / Tram / Bus / Ferry / Taxi) on the airport Transport tab; only modes present are shown.
+  Applies to departures and stops; resets per airport. `filterByMode()` / `modesPresent()` in `js/transport.js` (tested).
+- Google Maps not used: no public live-departures API and it needs a billing card. Stays OSM + Transitland.
+- Checked: tests pass (60). Not checked in a browser or on iPhone.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.

@@ -1,7 +1,7 @@
 // Airport panel: header (codes, elevation, runways), tabs Departures / Arrivals / Weather.
 /* global L */
 import { fetchShapes, fetchMetar, fetchTaf, fetchModelForecast, fetchTransportStops, fetchTransitDepartures } from './api.js';
-import { overpassQuery, parseStops, departureView, distanceText, MODES } from './transport.js';
+import { overpassQuery, parseStops, departureView, distanceText, filterByMode, modesPresent, MODES } from './transport.js';
 import { decodeMetar, formatTaf } from './metar.js';
 import { parseTaf, tafTimeline, resolveTime } from './taf.js';
 import { metarSentences, trendSentence, groupSentence, periodKind, periodWhen, dayTime, localParts } from './wx-text.js';
@@ -70,22 +70,29 @@ function weatherHtml({ metar, taf, timeline, model, tz, now }) {
   return out.join('');
 }
 
-function transportHtml(tp, tz) {
+function transportHtml(tp, tz, filter = 'all') {
   if (!tp) return 'Looking up local transport…';
   const now = Date.now();
-  const deps = (tp.departures || []).map((d) => ({ d, v: departureView(d, now, tz) })).filter((x) => x.v).slice(0, 10);
+  const present = modesPresent(tp.departures, tp.stops);
+  if (filter !== 'all' && !present.includes(filter)) filter = 'all';
+  const label = filter === 'all' ? '' : ` (${MODES[filter].label.toLowerCase()})`;
+  const chips = present.length > 1 ? `<div class="chips" role="group" aria-label="Filter by transport type">${
+    ['all', ...present].map((m) => `<button type="button" data-mode="${m}" class="${m === filter ? 'on' : ''}">${
+      m === 'all' ? 'All' : `${MODES[m].icon} ${MODES[m].label}`}</button>`).join('')}</div>` : '';
+  const deps = filterByMode(tp.departures || [], filter).map((d) => ({ d, v: departureView(d, now, tz) })).filter((x) => x.v).slice(0, 10);
   const next = tp.departures === null
     ? '<div class="note">Live departure times are not available for this airport right now.</div>'
     : deps.length ? `<ul class="flights">${deps.map(({ d, v }) => `
       <li><div><b>${MODES[d.mode]?.icon || '🚏'} ${val(d.line)}</b><span class="sub">${esc([d.headsign && `to ${d.headsign}`, d.stop].filter(Boolean).join(' · '))}</span></div>
       <div class="right"><b class="${d.live ? 'live' : ''}">${esc(v.text)}</b><span class="sub">${v.clock}${d.live ? ' · live' : ' · scheduled'}</span></div></li>`).join('')}</ul>`
       : '<div class="note">No departures in the next 2 hours near the airport.</div>';
+  const shown = tp.stops && filterByMode(tp.stops, filter);
   const stops = tp.stops === null ? `<div class="na">Stop list ${NA}</div>`
-    : tp.stops.length ? `<ul class="flights">${tp.stops.map((s) => `
+    : shown.length ? `<ul class="flights">${shown.map((s) => `
       <li style="cursor:default"><div><b>${MODES[s.mode].icon} ${esc(s.name)}</b><span class="sub">${MODES[s.mode].label}${s.operator ? ` · ${esc(s.operator)}` : ''}</span></div>
       <div class="right">${distanceText(s.distM)}</div></li>`).join('')}</ul>`
       : '<div class="note">No stations or stops found within 2.5 km in OpenStreetMap.</div>';
-  return `<h3>Next departures</h3>${next}<h3>Stations and stops nearby</h3>${stops}
+  return `${chips}<h3>Next departures${label}</h3>${next}<h3>Stations and stops nearby${label}</h3>${stops}
     <div class="note">Stops © OpenStreetMap contributors. Times from Transitland (GTFS); where an operator shares no real-time data, scheduled times are shown.</div>`;
 }
 
@@ -109,6 +116,7 @@ export function initAirportPanel(map, layer) {
   let marker = null;
   let clock = null;
   let transport = null; // { stops, departures } for the open airport
+  let modeFilter = 'all'; // transport tab filter, reset per airport
   let cameras = null;
 
   const yieldPanel = () => close();
@@ -120,7 +128,7 @@ export function initAirportPanel(map, layer) {
     el.querySelectorAll('.tabs button').forEach((btn) => btn.classList.toggle('on', btn.dataset.tab === tab));
     if (tab === 'cameras') { cameras.render(b); return; }
     if (tab === 'weather') { b.innerHTML = 'Loading…'; loadWeather(token); return; }
-    if (tab === 'transport') { b.innerHTML = transportHtml(transport, apt.tz); loadTransport(token); return; }
+    if (tab === 'transport') { b.innerHTML = transportHtml(transport, apt.tz, modeFilter); loadTransport(token); return; }
     if (!traffic) { b.innerHTML = 'Looking up live traffic and routes…'; return; }
     if (traffic.error) { b.innerHTML = `<div class="na">Live traffic ${NA}</div>`; return; }
     const note = `<div class="note">Derived from live positions and adsbdb routes, not schedules.${
@@ -154,7 +162,7 @@ export function initAirportPanel(map, layer) {
     ]);
     if (t !== token) return;
     transport = { stops, departures };
-    if (tab === 'transport') body().innerHTML = transportHtml(transport, apt.tz);
+    if (tab === 'transport') body().innerHTML = transportHtml(transport, apt.tz, modeFilter);
   }
 
   async function loadTraffic(t) {
@@ -183,6 +191,7 @@ export function initAirportPanel(map, layer) {
     const t = ++token;
     traffic = null;
     transport = null;
+    modeFilter = 'all';
     tab = 'departures';
     cameras = createCameras(a);
     const codes = [a.icao, a.iata].filter(Boolean).join(' / ');
@@ -217,6 +226,12 @@ export function initAirportPanel(map, layer) {
       renderBody();
     }));
     body().addEventListener('click', (e) => {
+      const chip = e.target.closest('button[data-mode]');
+      if (chip && tab === 'transport') {
+        modeFilter = chip.dataset.mode;
+        body().innerHTML = transportHtml(transport, apt.tz, modeFilter);
+        return;
+      }
       const li = e.target.closest('li[data-hex]');
       const item = li && traffic && [...traffic.departures, ...traffic.arrivals, ...traffic.unknown]
         .find((x) => x.ac.hex === li.dataset.hex);
