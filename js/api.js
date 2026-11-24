@@ -158,7 +158,7 @@ export async function fetchModelForecast(lat, lon, hours = 24) {
 // A source that is blocked (403), over quota (429) or failing is skipped for a while, so a dead source does not
 // slow every poll down.
 // Normalised to: { hex, callsign, lat, lon, alt (ft, null if unknown), onGround, gs (kt), track (deg), vrate (ft/min),
-//   squawk, seen (s), reg, type }
+//   squawk, seen (s), reg, type (ICAO type code), category (ADS-B emitter category, e.g. A3) }
 export const MAX_RADIUS_NM = 250; // limit of the readsb sources
 
 const BACKOFF_MS = { 403: 10 * 60000, 429: 5 * 60000, other: 60000 };
@@ -318,6 +318,7 @@ function normaliseAdsb(data) {
       seen: a.seen ?? null,
       reg: a.r || null,
       type: a.t || null,
+      category: a.category || null,
     }));
 }
 
@@ -344,6 +345,7 @@ export function normaliseOpenSky(data) {
         seen: typeof s[4] === 'number' ? Math.max(0, Math.round(now - s[4])) : null,
         reg: null,
         type: null,
+        category: null,
       };
     });
 }

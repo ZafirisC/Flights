@@ -178,6 +178,10 @@ html, body {
 /* Aircraft markers */
 .ac-icon { background: none; border: none; }
 .ac-icon svg { display: block; }
+/* Sun shadow + body (js/aircraft-icon.js). The SVG is larger than the marker box; clicks only hit the box. */
+.ac-icon .ac-svg { position: absolute; left: calc(-1 * var(--ac-pad)); top: calc(-1 * var(--ac-pad)); overflow: visible; pointer-events: none; }
+:root { --ac-shadow: #14202b; --ac-shadow-k: 0.3; --ac-blur: rgba(30, 36, 42, 0.28); --ac-disc: rgba(30, 36, 42, 0.1); --ac-blade: rgba(20, 26, 32, 0.55); }
+:root[data-theme="dark"] { --ac-shadow: #000; --ac-shadow-k: 0.55; --ac-blur: rgba(210, 220, 230, 0.28); --ac-disc: rgba(210, 220, 230, 0.1); --ac-blade: rgba(220, 230, 240, 0.55); }
 .ac-glide { position: relative; z-index: 0; width: 100%; height: 100%; } /* moved between polls by js/glide.js; carries the rings */ /* no filter: a drop-shadow on hundreds of icons makes panning slow on phones */
 
 /* Altitude legend (sits above the disclaimer) */
@@ -197,7 +201,7 @@ html, body {
 .alt-legend-labels { display: flex; justify-content: space-between; margin-top: 2px; }
 
 /* Emergency aircraft */
-.ac-icon.ac-emergency svg { filter: drop-shadow(0 0 3px #fff); }
+.ac-icon.ac-emergency .ac-body { filter: drop-shadow(0 0 3px #fff); }
 .ac-icon.ac-emergency .ac-glide::before {
   content: "";
   position: absolute;

@@ -383,6 +383,20 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Google Maps not used: no public live-departures API and it needs a billing card. Stays OSM + Transitland.
 - Checked: tests pass (60); headless Chromium at iPhone width with mocked Overpass + Worker (ATH): chips All/Train/Metro/Bus, Bus leaves 2 departures + 1 stop, no errors. Not checked on a real iPhone.
 
+## Aircraft icons per type, lit by the sun (2026-11-24, user request) — code done, awaiting PC + iPhone test
+- Mockups chosen from two rounds (6 styles → "Twinjet" style per aircraft family).
+- `js/aircraft-types.js`: ICAO type code → family (N narrow twin, W wide twin, Q four-engine, T turboprop, R rear-engine jet,
+  L light single, H helicopter, U unknown). Fallback: ADS-B emitter category (A1/A2/A3/A4/A5/A7), else U.
+  `category` is now read from the readsb feeds (`js/api.js`); OpenSky has none.
+- `js/aircraft-icon.js`: SVG per marker. Body rotated to track and shaded by the sun at the aircraft (`js/sun.js`);
+  flat shadow in map orientation, away from the sun, length grows with altitude and low sun (max 12 px), none at night
+  (navigation lights instead). Tail fin casts its own streak. No CSS filters (only emergencies keep their glow).
+- Marker size per family (19 px light single … 34 px four-engine). The SVG overflows the marker box by 14 px; only the
+  box is clickable. Shadow/propeller colours come from CSS variables, light and dark.
+- Icons are rebuilt when track, colour, type or the sun (rounded to 5° azimuth / 2° elevation) changes.
+- Tests: `tests/aircraft-icon.test.mjs`. Checked in Chromium with mocked live data (light + dark, click to select).
+- To check live: performance when panning with many aircraft on iPhone; type coverage (unknowns fall back to the twinjet).
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
