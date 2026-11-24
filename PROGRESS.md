@@ -31,6 +31,9 @@ One phase per session; `/clear` between phases. Test on PC and iPhone, commit, u
 - [x] Airports on the map, selectable
 - [x] Airport local time (time zone in airports.json)
 - [x] Full flight track + dashed line to destination
+  - Trip line restyled (option C + altitude): soft band for the planned origin → destination great circle,
+    flown track in altitude colours on top, dotted great circle from the aircraft to the destination.
+    Band needs both airports from adsbdb. Awaiting PC + iPhone check.
 - [x] Weather and day/night layers
 - [x] Live ATC links
 
