@@ -96,7 +96,8 @@ export function initAircraftPanel(map, { onClose, onAirport } = {}) {
     seat.route = route; seat.routeDone = true; renderSeats(t);
     loadRunways(t, route);
     progress?.setRoute(route);
-    track.setDestination(route?.destination?.lat != null ? [route.destination.lat, route.destination.lon] : null);
+    const ll = (ap) => (ap?.lat != null ? [ap.lat, ap.lon] : null);
+    track.setRoute(ll(route?.origin), ll(route?.destination));
     const atc = [liveAtcLink(route?.origin?.icao, `ATC ${route?.origin?.iata || route?.origin?.icao || ''}`),
       liveAtcLink(route?.destination?.icao, `ATC ${route?.destination?.iata || route?.destination?.icao || ''}`)].join('');
     if (atc && t === token) sec('flight')?.insertAdjacentHTML('beforeend', `<div class="btn-row">${atc}</div>`);
