@@ -381,7 +381,7 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Filter chips (All / Train / Metro / Tram / Bus / Ferry / Taxi) on the airport Transport tab; only modes present are shown.
   Applies to departures and stops; resets per airport. `filterByMode()` / `modesPresent()` in `js/transport.js` (tested).
 - Google Maps not used: no public live-departures API and it needs a billing card. Stays OSM + Transitland.
-- Checked: tests pass (60). Not checked in a browser or on iPhone.
+- Checked: tests pass (60); headless Chromium at iPhone width with mocked Overpass + Worker (ATH): chips All/Train/Metro/Bus, Bus leaves 2 departures + 1 stop, no errors. Not checked on a real iPhone.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
