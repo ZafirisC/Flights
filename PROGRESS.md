@@ -375,7 +375,7 @@ the points marked "unverified" still need a check with those hosts allowed.
 - `js/region-shape.js` (projection, SVG, flag `<img>`), `fetchShapes()` in `api.js` (loaded once, on first airport
   panel). Missing country/flag: nothing shown. Tests: `tests/region-shape.test.mjs` (incl. Russia across 180°).
 - Checked: tests pass (59); LGAV / KDEN / SBGR in headless Chromium, desktop and iPhone 13 size, no errors.
-  Not checked on a real iPhone. Long names wrap more on phones (text keeps 74% of the width).
+  Not checked on a real iPhone. The name runs over the map (full width) so long names wrap less.
 
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
