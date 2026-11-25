@@ -400,6 +400,11 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Tests: `tests/aircraft-icon.test.mjs`. Checked in Chromium with mocked live data (light + dark, click to select).
 - To check live: performance when panning with many aircraft on iPhone; type coverage (unknowns fall back to the twinjet).
 
+## Panel header: green and gold (2026-11-25, user request) — code done, awaiting PC + iPhone test
+- User picked option C from mockups: racing green banner (`#0d2b1f` → `#1e4d3a`) with gold title, subtitle, close
+  button and country/state outline (`#e6c36a` / `#c9a646`); airport dot gold on green. CSS only (`css/style.css`).
+- Unchanged: the orange accents elsewhere in the panel and the orange refresh button next to the search box.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
