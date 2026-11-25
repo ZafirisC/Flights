@@ -400,6 +400,14 @@ the points marked "unverified" still need a check with those hosts allowed.
 - Tests: `tests/aircraft-icon.test.mjs`. Checked in Chromium with mocked live data (light + dark, click to select).
 - To check live: performance when panning with many aircraft on iPhone; type coverage (unknowns fall back to the twinjet).
 
+## Panel header: green and gold (2026-11-25, user request) — code done, awaiting PC + iPhone test
+- User picked option C from mockups: racing green banner (`#0d2b1f` → `#1e4d3a`) with gold title, subtitle, close
+  button and country/state outline (`#e6c36a` / `#c9a646`); airport dot gold on green. CSS only (`css/style.css`).
+- Follow-up (same day): whole theme moved off orange. Accent `--accent`/`--progress` = green `#1e5c43` in light,
+  gold `#e6c36a` in dark; new `--on-accent` for text on accent fills (selected chips). Refresh button = green/gold,
+  shadows green-tinted, METAR badge gold tint, manifest `theme_color` `#0d2b1f`.
+- Kept on purpose: cream backgrounds, altitude colours, delay orange/red, diverted amber, red alerts, blue app icon.
+
 ## Known issues
 - Unknown aircraft/callsigns make adsbdb answer 404; the browser logs these as network errors in the console. Harmless.
 - After a deploy, the first visit may still run cached JS (until the Phase 9 service worker is installed). After that, files are revalidated on every load.
