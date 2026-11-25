@@ -6,8 +6,9 @@
   --surface: rgba(255, 250, 243, 0.96);
   --border: #eadfce;
   --card: #f7eee1;
-  --accent: #e8590c;
-  --progress: #e8590c;
+  --accent: #1e5c43;
+  --on-accent: #e6c36a;
+  --progress: #1e5c43;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
@@ -20,8 +21,9 @@
   --surface: rgba(40, 34, 29, 0.96);
   --border: #40362d;
   --card: #2a231e;
-  --accent: #ff8a4c;
-  --progress: #ff8a4c;
+  --accent: #e6c36a;
+  --on-accent: #0d2b1f;
+  --progress: #e6c36a;
   --tile-filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
 }
 
@@ -319,7 +321,7 @@ html, body {
   flex: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 22px;
   background: none; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer;
 }
-#panel .chips button.on { background: var(--accent, #1565c0); border-color: var(--accent, #1565c0); color: #fff; }
+#panel .chips button.on { background: var(--accent, #1565c0); border-color: var(--accent, #1565c0); color: var(--on-accent, #fff); }
 #panel ul.flights { list-style: none; margin: 0; padding: 0; }
 #panel ul.flights li {
   display: flex; justify-content: space-between; gap: 10px; min-height: 44px; padding: 6px 0;
@@ -344,7 +346,7 @@ html, body {
 #panel .wx-period { padding: 6px 0; border-bottom: 1px solid var(--border); }
 #panel .wx-period:last-of-type { border-bottom: 0; }
 #panel .wx-when { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 2px; color: var(--muted); font-size: 12px; }
-#panel .wx-kind { padding: 1px 6px; border-radius: 4px; background: rgba(232, 89, 12, 0.14); color: var(--accent); font-size: 11px; font-weight: 700; }
+#panel .wx-kind { padding: 1px 6px; border-radius: 4px; background: rgba(201, 166, 70, 0.2); color: var(--accent); font-size: 11px; font-weight: 700; }
 .mg { display: block; width: 100%; height: auto; margin: 4px 0; }
 .mg text { font: 10px system-ui, -apple-system, sans-serif; fill: var(--fg); }
 .mg text.m { fill: var(--muted); }
@@ -430,15 +432,15 @@ html, body {
 }
 :root :is(#search, #refresh, #updated, #status, #suggestions, .alt-legend, .theme-toggle, .layers-ctl) {
   border: 0;
-  box-shadow: 0 6px 20px rgba(120, 60, 10, 0.2);
+  box-shadow: 0 6px 20px rgba(13, 43, 31, 0.2);
 }
 
 /* Top bar */
 :root #search { min-height: 48px; border-radius: 16px; border: 2px solid transparent; }
 :root #search:focus { outline: none; border-color: var(--accent); }
 :root #refresh {
-  width: 48px; min-height: 48px; border-radius: 16px; color: #fff;
-  background: linear-gradient(135deg, #f76707, #e64980);
+  width: 48px; min-height: 48px; border-radius: 16px; color: #e6c36a;
+  background: linear-gradient(135deg, #0d2b1f, #1e4d3a);
 }
 :root :is(#updated, #status) { border-radius: 12px; padding: 4px 12px; }
 :root #suggestions { border-radius: 16px; }
@@ -448,13 +450,13 @@ html, body {
 /* Map controls */
 :root :is(.theme-toggle, .layers-ctl, .alt-legend) { border-radius: 12px; }
 :root .theme-toggle { padding: 0 12px; }
-:root .leaflet-control-zoom { border: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(120, 60, 10, 0.2); }
+:root .leaflet-control-zoom { border: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(13, 43, 31, 0.2); }
 :root .leaflet-control-zoom a { background: var(--surface); color: var(--accent); border-bottom-color: var(--border); }
 :root .layers-menu input { accent-color: var(--accent); }
 :root #disclaimer { border-radius: 8px; }
 
 /* Panel */
-:root #panel { border: 0; box-shadow: 0 0 30px rgba(120, 60, 10, 0.25); }
+:root #panel { border: 0; box-shadow: 0 0 30px rgba(13, 43, 31, 0.25); }
 @media (max-width: 767px) {
   :root #panel { border-radius: 22px 22px 0 0; }
 }
@@ -510,5 +512,5 @@ html, body {
 /* Airport tabs: segmented control; flight lists as cards */
 :root #panel .tabs { gap: 0; padding: 4px; border: 0; border-radius: 14px; background: var(--card); }
 :root #panel .tabs button { min-height: 38px; border: 0; border-radius: 10px; }
-:root #panel .tabs button.on { background: var(--bg); color: var(--accent); box-shadow: 0 1px 4px rgba(120, 60, 10, 0.2); }
+:root #panel .tabs button.on { background: var(--bg); color: var(--accent); box-shadow: 0 1px 4px rgba(13, 43, 31, 0.2); }
 :root #panel ul.flights li { margin: 6px 0; padding: 8px 12px; border: 0; border-radius: 12px; background: var(--card); }
